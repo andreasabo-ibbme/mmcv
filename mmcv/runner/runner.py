@@ -273,13 +273,16 @@ class Runner(object):
         self.model.train()
         self.mode = 'train'
         self.data_loader = data_loader
+        true_labels, predicted_labels = [], []
 
         self.call_hook('before_train_epoch')
         for i, data_batch in enumerate(data_loader):
             self._inner_iter = i
             self.call_hook('before_train_iter')
-            outputs = self.batch_processor(
+            outputs, raw = self.batch_processor(
                 self.model, data_batch, train_mode=True, **kwargs)
+            true_labels.extend(raw['true'])
+            predicted_labels.extend(raw['pred'])
             if not isinstance(outputs, dict):
                 raise TypeError('batch_processor() must return a dict')
             if 'log_vars' in outputs:
@@ -291,19 +294,25 @@ class Runner(object):
 
         self.call_hook('after_train_epoch')
         self._epoch += 1
+        return true_labels, predicted_labels
+
 
     def val(self, data_loader, **kwargs):
         self.model.eval()
         self.mode = 'val'
         self.data_loader = data_loader
         self.call_hook('before_val_epoch')
+        true_labels, predicted_labels = [], []
 
         for i, data_batch in enumerate(data_loader):
             self._inner_iter = i
             self.call_hook('before_val_iter')
             with torch.no_grad():
-                outputs = self.batch_processor(
+                outputs, raw = self.batch_processor(
                     self.model, data_batch, train_mode=False, **kwargs)
+                true_labels.extend(raw['true'])
+                predicted_labels.extend(raw['pred'])
+
             if not isinstance(outputs, dict):
                 raise TypeError('batch_processor() must return a dict')
             if 'log_vars' in outputs:
@@ -311,9 +320,10 @@ class Runner(object):
                                        outputs['num_samples'])
             self.outputs = outputs
             self.call_hook('after_val_iter')
-
+        
         self.call_hook('after_val_epoch')
 
+        return true_labels, predicted_labels
     def resume(self,
                checkpoint,
                resume_optimizer=True,
@@ -380,8 +390,8 @@ class Runner(object):
                 for _ in range(epochs):
                     if mode == 'train' and self.epoch >= max_epochs:
                         return
-                    epoch_runner(data_loaders[i], **kwargs)
-
+                    res = epoch_runner(data_loaders[i], **kwargs)
+                    print("got res: ", res)
         time.sleep(1)  # wait for some hooks like loggers to finish
         self.call_hook('after_run')
 
