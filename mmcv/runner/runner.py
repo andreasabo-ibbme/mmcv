@@ -12,6 +12,9 @@ from .hooks import HOOKS, Hook, IterTimerHook
 from .log_buffer import LogBuffer
 from .priority import get_priority
 from .utils import get_host_info, get_time_str, obj_from_dict
+import pandas as pd
+from sklearn.metrics import accuracy_score
+import numpy as np
 
 
 class Runner(object):
@@ -293,6 +296,11 @@ class Runner(object):
             self._iter += 1
 
         self.call_hook('after_train_epoch')
+        # print(len(true_labels), len(predicted_labels))
+        # print(true_labels)
+        # print(predicted_labels)
+        # print("what is this (train): ", accuracy_score(true_labels, predicted_labels))
+
         self._epoch += 1
         return true_labels, predicted_labels
 
@@ -322,6 +330,7 @@ class Runner(object):
             self.call_hook('after_val_iter')
         
         self.call_hook('after_val_epoch')
+
 
         return true_labels, predicted_labels
     def resume(self,
@@ -372,6 +381,12 @@ class Runner(object):
                          get_host_info(), work_dir)
         self.logger.info('workflow: %s, max: %d epochs', workflow, max_epochs)
         self.call_hook('before_run')
+        print("work dir: ", self.work_dir)
+        train_accs = np.zeros((1, max_epochs)) * np.nan
+        val_accs = np.zeros((1, max_epochs)) * np.nan
+         
+        columns = ['epoch', 'train_acc', 'val_acc']
+        df_all = pd.DataFrame(columns=columns)
 
         while self.epoch < max_epochs:
             for i, flow in enumerate(workflow):
@@ -390,8 +405,25 @@ class Runner(object):
                 for _ in range(epochs):
                     if mode == 'train' and self.epoch >= max_epochs:
                         return
-                    res = epoch_runner(data_loaders[i], **kwargs)
-                    print("got res: ", res)
+                    true_labels, predicted_labels = epoch_runner(data_loaders[i], **kwargs)
+
+                    acc = accuracy_score(true_labels, predicted_labels)
+
+                    if mode == 'train':
+                        df_all.loc[len(df_all)] = [self.epoch-1, acc, val_accs[0, self.epoch]]
+
+                    elif mode == 'val':
+                        val_accs[0, self.epoch] = acc
+                        df_all.loc[df_all['epoch'] == self.epoch-1,'val_acc'] = acc
+
+                # print(train_accs, val_accs)
+                # print(train_accs[0, self.epoch])
+
+                    # print("got res: ", res)
+                # df_results = pd.DataFrame({'epoch' : epoches, 'train_acc': train_accs, 'val_acc': val_accs})
+            df_all.to_csv(self.work_dir + "/results_df.csv")
+            print(df_all)
+
         time.sleep(1)  # wait for some hooks like loggers to finish
         self.call_hook('after_run')
 
