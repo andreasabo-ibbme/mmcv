@@ -30,6 +30,11 @@ class LogBuffer(object):
             self.val_history[key].append(var)
             self.n_history[key].append(count)
 
+    def logChart(self, fig, name):
+        self.output[name] = fig
+        self.ready = True
+
+
     def average(self, n=0):
         """Average latest n values or all values"""
         assert n >= 0

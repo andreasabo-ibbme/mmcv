@@ -43,7 +43,8 @@ class Runner(object):
                  work_dir=None,
                  log_level=logging.INFO,
                  logger=None,
-                 meta=None):
+                 meta=None, 
+                 things_to_log=None):
         assert callable(batch_processor)
         self.model = model
         if optimizer is not None:
@@ -51,7 +52,7 @@ class Runner(object):
         else:
             self.optimizer = None
         self.batch_processor = batch_processor
-
+        self.things_to_log = things_to_log
         # create work_dir
         if mmcv.is_str(work_dir):
             self.work_dir = osp.abspath(work_dir)
@@ -69,6 +70,7 @@ class Runner(object):
 
         self._rank, self._world_size = get_dist_info()
         self.timestamp = get_time_str()
+
         if logger is None:
             self.logger = self.init_logger(work_dir, log_level)
         else:
@@ -184,6 +186,7 @@ class Runner(object):
         logging.basicConfig(
             format='%(asctime)s - %(levelname)s - %(message)s', level=level)
         logger = logging.getLogger(__name__)
+        print("logger in here: ", __name__)
         if log_dir and self.rank == 0:
             filename = f'{self.timestamp}.log'
             log_file = osp.join(log_dir, filename)
@@ -291,17 +294,29 @@ class Runner(object):
             if 'log_vars' in outputs:
                 self.log_buffer.update(outputs['log_vars'],
                                        outputs['num_samples'])
+
+                                  
             self.outputs = outputs
             self.call_hook('after_train_iter')
             self._iter += 1
+        self._epoch += 1
+
+        true_labels, predicted_labels = self.remove_non_labelled_data(true_labels, predicted_labels)
+        acc = accuracy_score(true_labels, predicted_labels)
+        log_this = {'accuracy': acc}
+        self.log_buffer.update(log_this, 1) 
+
+        self.preds = predicted_labels
+        self.labels = true_labels
+        self.call_hook('after_val_epoch')
 
         self.call_hook('after_train_epoch')
+ 
         # print(len(true_labels), len(predicted_labels))
         # print(true_labels)
         # print(predicted_labels)
         # print("what is this (train): ", accuracy_score(true_labels, predicted_labels))
 
-        self._epoch += 1
         return true_labels, predicted_labels
 
 
@@ -329,10 +344,30 @@ class Runner(object):
             self.outputs = outputs
             self.call_hook('after_val_iter')
         
+
+
+        true_labels, predicted_labels = self.remove_non_labelled_data(true_labels, predicted_labels)
+        acc = accuracy_score(true_labels, predicted_labels)
+        log_this = {'accuracy': acc}
+        self.log_buffer.update(log_this, 1) 
+
+        self.preds = predicted_labels
+        self.labels = true_labels
         self.call_hook('after_val_epoch')
 
 
         return true_labels, predicted_labels
+
+    def remove_non_labelled_data(self, true_labels, pred_labels):
+        true_np = np.asarray(true_labels)
+        pred_np = np.asarray(pred_labels)
+        keep = np.argwhere(true_np >= 0 ).transpose().squeeze()
+        # keep = np.transpose(keep).squeeze()
+        pred_labels = pred_np[keep]
+        true_labels = true_np[keep]
+        return list(true_labels), list(pred_labels)
+
+
     def resume(self,
                checkpoint,
                resume_optimizer=True,
@@ -410,19 +445,14 @@ class Runner(object):
                     acc = accuracy_score(true_labels, predicted_labels)
 
                     if mode == 'train':
-                        df_all.loc[len(df_all)] = [self.epoch-1, acc, val_accs[0, self.epoch]]
+                        df_all.loc[len(df_all)] = [self.epoch-1, acc, val_accs[0, self.epoch - 1]]
 
                     elif mode == 'val':
                         val_accs[0, self.epoch] = acc
                         df_all.loc[df_all['epoch'] == self.epoch-1,'val_acc'] = acc
 
-                # print(train_accs, val_accs)
-                # print(train_accs[0, self.epoch])
 
-                    # print("got res: ", res)
-                # df_results = pd.DataFrame({'epoch' : epoches, 'train_acc': train_accs, 'val_acc': val_accs})
             df_all.to_csv(self.work_dir + "/results_df.csv")
-            print(df_all)
 
         time.sleep(1)  # wait for some hooks like loggers to finish
         self.call_hook('after_run')
@@ -489,7 +519,7 @@ class Runner(object):
         log_interval = log_config['interval']
         for info in log_config['hooks']:
             logger_hook = mmcv.build_from_cfg(
-                info, HOOKS, default_args=dict(interval=log_interval))
+                info, HOOKS, default_args=dict(interval=log_interval, initial_config=self.things_to_log))
             self.register_hook(logger_hook, priority='VERY_LOW')
 
     def register_training_hooks(self,
