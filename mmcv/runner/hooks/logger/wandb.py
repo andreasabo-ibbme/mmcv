@@ -31,6 +31,7 @@ class WandbLoggerHook(LoggerHook):
         self.import_wandb()
         self.init_kwargs = init_kwargs
         self.initial_config = flatten(initial_config)
+        self.group = None
 
     def import_wandb(self):
         try:
@@ -43,12 +44,18 @@ class WandbLoggerHook(LoggerHook):
     @master_only
     def before_run(self, runner):
         if self.wandb is None:
+
             self.import_wandb()
+        if self.group is None:
+            self.group = self.wandb.util.generate_id()
+
         if self.init_kwargs:
+
             self.wandb.init(**self.init_kwargs)
         elif self.initial_config:
             print('initializing with: ', self.initial_config)
-            self.wandb.init(config=self.initial_config)
+            print('our group is: ', self.group)
+            self.wandb.init(config=self.initial_config, group=self.initial_config['wandb_group'], name="AMB"+str(self.initial_config['test_AMBID']), reinit=True)
         else:
             self.wandb.init()
 

@@ -2,7 +2,7 @@
 from collections import OrderedDict
 
 import numpy as np
-
+import matplotlib as plt
 
 class LogBuffer(object):
 

@@ -72,6 +72,7 @@ class Runner(object):
         self.timestamp = get_time_str()
 
         if logger is None:
+            print('Andrea - making new logger')
             self.logger = self.init_logger(work_dir, log_level)
         else:
             self.logger = logger
@@ -448,7 +449,7 @@ class Runner(object):
                         df_all.loc[len(df_all)] = [self.epoch-1, acc, val_accs[0, self.epoch - 1]]
 
                     elif mode == 'val':
-                        val_accs[0, self.epoch] = acc
+                        val_accs[0, self.epoch-1] = acc
                         df_all.loc[df_all['epoch'] == self.epoch-1,'val_acc'] = acc
 
 

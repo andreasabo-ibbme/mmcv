@@ -63,16 +63,18 @@ class LoggerHook(Hook):
                 runner.log_buffer.clear_output()
 
     def after_val_epoch(self, runner):
-        class_names = np.array([str(x) for x in range(10)])
-        fig_title = runner.mode.upper() + " Confusion matrix: " + str(runner._epoch)
-        fig = self.plot_confusion_matrix(runner.labels, runner.preds, class_names, False, fig_title)
+        if runner._epoch % self.interval == 0:
+            class_names = np.array([str(x) for x in range(10)])
+            fig_title = runner.mode.upper() + " Confusion matrix: " + str(runner._epoch)
+            fig = self.plot_confusion_matrix(runner.labels, runner.preds, class_names, False, fig_title)
 
 
-        figure_name = runner.work_dir +"/" + runner.mode + "_" + str(runner._epoch)+  ".png"
+            figure_name = runner.work_dir +"/" + runner.mode + "_" + str(runner._epoch)+  ".png"
 
-        fig.savefig(figure_name)
+            fig.savefig(figure_name)
 
-        runner.log_buffer.logChart(fig, runner.mode + "_" + str(runner._epoch)+  ".png")
+            runner.log_buffer.logChart(fig, runner.mode + "_" + str(runner._epoch)+  ".png")
+            
         runner.log_buffer.average()
         self.log(runner)
         if self.reset_flag:
