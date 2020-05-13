@@ -92,22 +92,21 @@ class LoggerHook(Hook):
                 title = 'Confusion matrix, without normalization'
 
         cm = confusion_matrix(y_true, y_pred)
-        print(cm)
         if cm.shape[1] is not len(classes):
             # print("our CM is not the right size!!")
             all_labels = y_true + y_pred
             y_all_unique = list(set(all_labels))
             y_all_unique.sort()
-            # print(y_all_unique)
-            # print(cm)
-            # print(type(cm))
-            cm_new = np.zeros((len(classes), len(classes)), dtype=np.int64)
-            start = y_all_unique[0]
-            stop = y_all_unique[-1]+1
 
-            cm_new[start:stop, start:stop] = cm
+            cm_new = np.zeros((len(classes), len(classes)), dtype=np.int64)
+            for i in range(len(y_all_unique)):
+                for j in range(len(y_all_unique)):
+                    i_global = y_all_unique[i]
+                    j_global = y_all_unique[j]
+                    cm_new[i_global, j_global] = cm[i,j]
+                   
+
             cm = cm_new
-            # print(cm_new)
 
 
         # print(cm)

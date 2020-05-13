@@ -291,6 +291,8 @@ class Runner(object):
             self.call_hook('before_train_iter')
             outputs, raw = self.batch_processor(
                 self.model, data_batch, train_mode=True, **kwargs)
+
+            # print(true_labels, "vs. ", raw['true'])
             true_labels.extend(raw['true'])
             predicted_labels.extend(raw['pred'])
             if not isinstance(outputs, dict):
@@ -305,7 +307,9 @@ class Runner(object):
             self._iter += 1
         self._epoch += 1
 
-        true_labels, predicted_labels = self.remove_non_labelled_data(true_labels, predicted_labels)
+        # true_labels, predicted_labels = self.remove_non_labelled_data(true_labels, predicted_labels)
+        # print(len(true_labels), true_labels)
+        # print(len(predicted_labels), predicted_labels)
         acc = accuracy_score(true_labels, predicted_labels)
         log_this = {'accuracy': acc}
         self.log_buffer.update(log_this, 1) 
@@ -350,7 +354,7 @@ class Runner(object):
         
 
 
-        true_labels, predicted_labels = self.remove_non_labelled_data(true_labels, predicted_labels)
+        # true_labels, predicted_labels = self.remove_non_labelled_data(true_labels, predicted_labels)
         acc = accuracy_score(true_labels, predicted_labels)
         log_this = {'accuracy': acc}
         self.log_buffer.update(log_this, 1) 
