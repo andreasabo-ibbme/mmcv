@@ -31,7 +31,7 @@ class LogBuffer(object):
             self.n_history[key].append(count)
 
     def logChart(self, fig, name):
-        self.output[name] = fig
+        self.output['confusion_matrix'] = fig, name
         self.ready = True
 
 

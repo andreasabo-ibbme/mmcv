@@ -63,9 +63,11 @@ class LoggerHook(Hook):
                 runner.log_buffer.clear_output()
 
     def after_val_epoch(self, runner):
-        if runner._epoch % self.interval == 0:
-            class_names = np.array([str(x) for x in range(10)])
-            fig_title = runner.mode.upper() + " Confusion matrix: " + str(runner._epoch)
+        if runner._epoch % 5 == 0:
+            # class_names = np.array([str(x) for x in range(10)])
+            num_class = runner.things_to_log['num_class']
+            class_names = [str(i) for i in range(num_class)]
+            fig_title = runner.mode.upper() + " Confusion matrix, epoch: " + str(runner._epoch)
             fig = self.plot_confusion_matrix(runner.labels, runner.preds, class_names, False, fig_title)
 
 
@@ -74,11 +76,12 @@ class LoggerHook(Hook):
             fig.savefig(figure_name)
 
             runner.log_buffer.logChart(fig, runner.mode + "_" + str(runner._epoch)+  ".png")
-            
+        # print("predictions: ", runner.preds)
         runner.log_buffer.average()
         self.log(runner)
         if self.reset_flag:
             runner.log_buffer.clear_output()
+            
 
     def plot_confusion_matrix(self, y_true, y_pred, classes,normalize=False,title=None,cmap=plt.cm.Blues):
 
@@ -89,8 +92,26 @@ class LoggerHook(Hook):
                 title = 'Confusion matrix, without normalization'
 
         cm = confusion_matrix(y_true, y_pred)
-        classes = classes[unique_labels(y_true, y_pred).astype(int)]
+        print(cm)
+        if cm.shape[1] is not len(classes):
+            # print("our CM is not the right size!!")
+            all_labels = y_true + y_pred
+            y_all_unique = list(set(all_labels))
+            y_all_unique.sort()
+            # print(y_all_unique)
+            # print(cm)
+            # print(type(cm))
+            cm_new = np.zeros((len(classes), len(classes)), dtype=np.int64)
+            start = y_all_unique[0]
+            stop = y_all_unique[-1]+1
 
+            cm_new[start:stop, start:stop] = cm
+            cm = cm_new
+            # print(cm_new)
+
+
+        # print(cm)
+        # classes = classes[unique_labels(y_true, y_pred).astype(int)]
         if normalize:
             cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
 

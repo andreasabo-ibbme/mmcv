@@ -5,6 +5,8 @@ from mmcv.runner import master_only
 from ..hook import HOOKS
 from .base import LoggerHook
 import collections
+from sklearn.utils.multiclass import unique_labels
+import matplotlib.pyplot as plt
 
 #https://stackoverflow.com/questions/6027558/flatten-nested-dictionaries-compressing-keys
 def flatten(d, parent_key='', sep='_'):
@@ -46,8 +48,7 @@ class WandbLoggerHook(LoggerHook):
         if self.wandb is None:
 
             self.import_wandb()
-        if self.group is None:
-            self.group = self.wandb.util.generate_id()
+
 
         if self.init_kwargs:
 
@@ -63,17 +64,21 @@ class WandbLoggerHook(LoggerHook):
     def log(self, runner):
         metrics = {}
         for var, val in runner.log_buffer.output.items():
-            if var in ['time', 'data_time']:
+            if var in ['time', 'data_time', 'confusion_matrix']:
                 continue
             tag = f'{runner.mode}/{var}'
-            # print(tag)
-            # if isinstance(val, numbers.Number):
             metrics[tag] = val
         metrics['learning_rate'] = runner.current_lr()[0]
         metrics['momentum'] = runner.current_momentum()[0]
         if metrics:
             self.wandb.log(metrics, step=runner._epoch)
-        print("logging: ", runner.mode, ", epoch: ", runner._epoch)
+        print("logging: ", metrics, ", epoch: ", runner._epoch)
+
+        if 'confusion_matrix' in runner.log_buffer.output:
+            # print(runner.log_buffer.output['confusion_matrix'][1])
+            self.wandb.log({runner.log_buffer.output['confusion_matrix'][1]: runner.log_buffer.output['confusion_matrix'][0]}, step=runner._epoch)
+            # plt.close('all')
+        # self.wandb.sklearn.plot_confusion_matrix(runner.labels, runner.preds, labels)
     @master_only
     def after_run(self, runner):
         self.wandb.join()

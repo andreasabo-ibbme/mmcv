@@ -53,6 +53,7 @@ class Runner(object):
             self.optimizer = None
         self.batch_processor = batch_processor
         self.things_to_log = things_to_log
+
         # create work_dir
         if mmcv.is_str(work_dir):
             self.work_dir = osp.abspath(work_dir)
@@ -70,6 +71,8 @@ class Runner(object):
 
         self._rank, self._world_size = get_dist_info()
         self.timestamp = get_time_str()
+
+
 
         if logger is None:
             print('Andrea - making new logger')
