@@ -18,7 +18,11 @@ class OptimizerHook(Hook):
 
     def after_train_iter(self, runner):
         runner.optimizer.zero_grad()
-        runner.outputs['loss'].backward()
+        try:
+            runner.outputs['loss'].backward()
+        except:
+            print('bad loss is: ', runner.outputs['loss'])
+            raise ValueError("stop")
         if self.grad_clip is not None:
             self.clip_grads(runner.model.parameters())
         runner.optimizer.step()

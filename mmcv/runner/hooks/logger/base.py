@@ -2,7 +2,7 @@
 from abc import ABCMeta, abstractmethod
 
 from ..hook import Hook
-
+import os, mmcv
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,7 +10,8 @@ import matplotlib.pyplot as plt
 from scipy import stats
 from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
 from sklearn.utils.multiclass import unique_labels
-
+import csv
+from pathlib import Path
 
 
 
@@ -63,6 +64,27 @@ class LoggerHook(Hook):
                 runner.log_buffer.clear_output()
 
     def after_val_epoch(self, runner):
+
+        if runner.mode == 'val':
+
+            final_results_base = str(Path(runner.work_dir).parents[0])
+            final_results_base, amb = os.path.split(runner.work_dir)
+            final_results_path = os.path.join(final_results_base, 'all_test', runner.things_to_log['wandb_group'])
+            final_results_file = os.path.join(final_results_path,'test_' + str(runner._epoch) + '.csv')
+            mmcv.mkdir_or_exist(final_results_path)
+            header = ['amb', 'true_score', 'pred_round', 'pred_raw']
+
+            if not os.path.exists(final_results_file):
+                with open (final_results_file,'w') as f:                            
+                    writer = csv.writer(f, delimiter=',') 
+                    writer.writerow(header)
+
+
+            with open (final_results_file,'a') as f:                            
+                writer = csv.writer(f, delimiter=',') 
+                for num in range(len(runner.labels)):
+                    writer.writerow([amb, runner.labels[num], runner.preds[num], runner.preds_raw[num]])
+
         if runner._epoch % 5 == 0:
             # class_names = np.array([str(x) for x in range(10)])
             num_class = runner.things_to_log['num_class']
@@ -70,18 +92,42 @@ class LoggerHook(Hook):
             fig_title = runner.mode.upper() + " Confusion matrix, epoch: " + str(runner._epoch)
             fig = self.plot_confusion_matrix(runner.labels, runner.preds, class_names, False, fig_title)
 
-
-            figure_name = runner.work_dir +"/" + runner.mode + "_" + str(runner._epoch)+  ".png"
-
+            figure_name = runner.work_dir +"/" + runner.mode + "_confusion_" + str(runner._epoch)+  ".png"
             fig.savefig(figure_name)
 
-            runner.log_buffer.logChart(fig, runner.mode + "_" + str(runner._epoch)+  ".png")
+            runner.log_buffer.logChart(fig, runner.mode + "_" + str(runner._epoch)+  ".png", "confusion_matrix")
+
+
+            # regression plots
+            fig_title = runner.mode.upper() + " Regression plot, epoch: " + str(runner._epoch)
+
+            reg_fig = self.regressionPlot(runner.labels, runner.preds_raw, class_names, fig_title)
+
+            figure_name = runner.work_dir +"/" + runner.mode + "_regression_" + str(runner._epoch)+  ".png"
+            reg_fig.savefig(figure_name)
+            runner.log_buffer.logChart(fig, runner.mode + "_" + str(runner._epoch)+  ".png", "regression_plot")
+
+
         # print("predictions: ", runner.preds)
         runner.log_buffer.average()
         self.log(runner)
         if self.reset_flag:
             runner.log_buffer.clear_output()
             
+    def regressionPlot(self, labels, raw_preds, classes, fig_title):
+        labels = np.asarray(labels)
+        true_labels_jitter = labels + np.random.random_sample(labels.shape)/6
+
+        fig = plt.figure()
+        plt.plot(true_labels_jitter, raw_preds, 'bo', markersize=6)
+        plt.title(fig_title)
+
+        plt.xlim(-0.5, 4.5)
+        plt.ylim(-0.5, 4.5)
+
+        plt.xlabel("True Label")
+        plt.ylabel("Regression Value")
+        return fig
 
     def plot_confusion_matrix(self, y_true, y_pred, classes,normalize=False,title=None,cmap=plt.cm.Blues):
 

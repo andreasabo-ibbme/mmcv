@@ -54,6 +54,7 @@ class Runner(object):
         self.batch_processor = batch_processor
         self.things_to_log = things_to_log
 
+
         # create work_dir
         if mmcv.is_str(work_dir):
             self.work_dir = osp.abspath(work_dir)
@@ -283,7 +284,7 @@ class Runner(object):
         self.model.train()
         self.mode = 'train'
         self.data_loader = data_loader
-        true_labels, predicted_labels = [], []
+        true_labels, predicted_labels, pred_raw = [], [], []
 
         self.call_hook('before_train_epoch')
         for i, data_batch in enumerate(data_loader):
@@ -295,6 +296,7 @@ class Runner(object):
             # print(true_labels, "vs. ", raw['true'])
             true_labels.extend(raw['true'])
             predicted_labels.extend(raw['pred'])
+            pred_raw.extend(raw['raw_preds'])
             if not isinstance(outputs, dict):
                 raise TypeError('batch_processor() must return a dict')
             if 'log_vars' in outputs:
@@ -316,6 +318,7 @@ class Runner(object):
 
         self.preds = predicted_labels
         self.labels = true_labels
+        self.preds_raw = pred_raw
         self.call_hook('after_val_epoch')
 
         self.call_hook('after_train_epoch')
@@ -333,7 +336,7 @@ class Runner(object):
         self.mode = 'val'
         self.data_loader = data_loader
         self.call_hook('before_val_epoch')
-        true_labels, predicted_labels = [], []
+        true_labels, predicted_labels, pred_raw = [], [], []
 
         for i, data_batch in enumerate(data_loader):
             self._inner_iter = i
@@ -343,6 +346,7 @@ class Runner(object):
                     self.model, data_batch, train_mode=False, **kwargs)
                 true_labels.extend(raw['true'])
                 predicted_labels.extend(raw['pred'])
+                pred_raw.extend(raw['raw_preds'])
 
             if not isinstance(outputs, dict):
                 raise TypeError('batch_processor() must return a dict')
@@ -361,6 +365,7 @@ class Runner(object):
 
         self.preds = predicted_labels
         self.labels = true_labels
+        self.preds_raw = pred_raw
         self.call_hook('after_val_epoch')
 
 

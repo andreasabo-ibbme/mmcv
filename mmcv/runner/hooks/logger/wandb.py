@@ -64,7 +64,7 @@ class WandbLoggerHook(LoggerHook):
     def log(self, runner):
         metrics = {}
         for var, val in runner.log_buffer.output.items():
-            if var in ['time', 'data_time', 'confusion_matrix']:
+            if var in ['time', 'data_time', 'confusion_matrix', 'regression_plot']:
                 continue
             tag = f'{runner.mode}/{var}'
             metrics[tag] = val
@@ -74,11 +74,10 @@ class WandbLoggerHook(LoggerHook):
             self.wandb.log(metrics, step=runner._epoch)
         print("logging: ", metrics, ", epoch: ", runner._epoch)
 
-        if 'confusion_matrix' in runner.log_buffer.output:
-            # print(runner.log_buffer.output['confusion_matrix'][1])
-            self.wandb.log({runner.log_buffer.output['confusion_matrix'][1]: runner.log_buffer.output['confusion_matrix'][0]}, step=runner._epoch)
-            # plt.close('all')
-        # self.wandb.sklearn.plot_confusion_matrix(runner.labels, runner.preds, labels)
+        for plot_type in ['confusion_matrix', 'regression_plot']:
+            if plot_type in runner.log_buffer.output:
+                self.wandb.log({plot_type + "/" + runner.log_buffer.output[plot_type][1]: runner.log_buffer.output[plot_type][0]}, step=runner._epoch)
+
     @master_only
     def after_run(self, runner):
         self.wandb.join()
