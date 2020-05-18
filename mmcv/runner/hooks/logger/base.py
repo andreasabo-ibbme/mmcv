@@ -105,7 +105,7 @@ class LoggerHook(Hook):
 
             figure_name = runner.work_dir +"/" + runner.mode + "_regression_" + str(runner._epoch)+  ".png"
             reg_fig.savefig(figure_name)
-            runner.log_buffer.logChart(fig, runner.mode + "_" + str(runner._epoch)+  ".png", "regression_plot")
+            runner.log_buffer.logChart(reg_fig, runner.mode + "_" + str(runner._epoch)+  ".png", "regression_plot")
 
 
         # print("predictions: ", runner.preds)

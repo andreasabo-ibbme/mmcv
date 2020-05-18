@@ -371,6 +371,48 @@ class Runner(object):
 
         return true_labels, predicted_labels
 
+
+    def test(self, data_loader, **kwargs):
+        self.model.eval()
+        self.mode = 'test'
+        self.data_loader = data_loader
+        self.call_hook('before_val_epoch')
+        true_labels, predicted_labels, pred_raw = [], [], []
+
+        for i, data_batch in enumerate(data_loader):
+            self._inner_iter = i
+            self.call_hook('before_val_iter')
+            with torch.no_grad():
+                outputs, raw = self.batch_processor(
+                    self.model, data_batch, train_mode=False, **kwargs)
+                true_labels.extend(raw['true'])
+                predicted_labels.extend(raw['pred'])
+                pred_raw.extend(raw['raw_preds'])
+
+            if not isinstance(outputs, dict):
+                raise TypeError('batch_processor() must return a dict')
+            if 'log_vars' in outputs:
+                self.log_buffer.update(outputs['log_vars'],
+                                       outputs['num_samples'])
+            self.outputs = outputs
+            self.call_hook('after_val_iter')
+        
+
+
+        # true_labels, predicted_labels = self.remove_non_labelled_data(true_labels, predicted_labels)
+        acc = accuracy_score(true_labels, predicted_labels)
+        log_this = {'accuracy': acc}
+        self.log_buffer.update(log_this, 1) 
+
+        self.preds = predicted_labels
+        self.labels = true_labels
+        self.preds_raw = pred_raw
+        self.call_hook('after_val_epoch')
+
+
+        return true_labels, predicted_labels
+
+
     def remove_non_labelled_data(self, true_labels, pred_labels):
         true_np = np.asarray(true_labels)
         pred_np = np.asarray(pred_labels)

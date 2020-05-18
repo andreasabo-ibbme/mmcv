@@ -56,7 +56,7 @@ class WandbLoggerHook(LoggerHook):
         elif self.initial_config:
             print('initializing with: ', self.initial_config)
             print('our group is: ', self.group)
-            self.wandb.init(config=self.initial_config, group=self.initial_config['wandb_group'], name="AMB"+str(self.initial_config['test_AMBID']), reinit=True)
+            self.wandb.init(project='mmskel_cv', config=self.initial_config, group=self.initial_config['wandb_group'], name="AMB"+str(self.initial_config['test_AMBID']), reinit=True)
         else:
             self.wandb.init()
 
@@ -76,7 +76,7 @@ class WandbLoggerHook(LoggerHook):
 
         for plot_type in ['confusion_matrix', 'regression_plot']:
             if plot_type in runner.log_buffer.output:
-                self.wandb.log({plot_type + "/" + runner.log_buffer.output[plot_type][1]: runner.log_buffer.output[plot_type][0]}, step=runner._epoch)
+                self.wandb.log({plot_type + "/" + runner.log_buffer.output[plot_type][1]: [self.wandb.Image(runner.log_buffer.output[plot_type][0])]}, step=runner._epoch)
 
     @master_only
     def after_run(self, runner):
