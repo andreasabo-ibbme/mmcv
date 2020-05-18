@@ -322,7 +322,8 @@ class Runner(object):
         self.call_hook('after_val_epoch')
 
         self.call_hook('after_train_epoch')
- 
+        # print('train', 'labels', true_labels, 'oreds', predicted_labels)
+
         # print(len(true_labels), len(predicted_labels))
         # print(true_labels)
         # print(predicted_labels)
@@ -366,6 +367,7 @@ class Runner(object):
         self.preds = predicted_labels
         self.labels = true_labels
         self.preds_raw = pred_raw
+        # print('labels', true_labels, 'oreds', predicted_labels)
         self.call_hook('after_val_epoch')
 
 
@@ -408,6 +410,7 @@ class Runner(object):
         self.labels = true_labels
         self.preds_raw = pred_raw
         self.call_hook('after_val_epoch')
+        # print('test', 'labels', true_labels, 'oreds', predicted_labels)
 
 
         return true_labels, predicted_labels
