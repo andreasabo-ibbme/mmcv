@@ -42,6 +42,7 @@ class LogBuffer(object):
         for key in self.val_history:
             values = np.array(self.val_history[key][-n:])
             nums = np.array(self.n_history[key][-n:])
+            # print("key is: ", key ," nums is: ", np.sum(nums))
             avg = np.sum(values * nums) / np.sum(nums)
             self.output[key] = avg
         self.ready = True
