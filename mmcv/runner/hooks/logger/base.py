@@ -65,12 +65,19 @@ class LoggerHook(Hook):
 
     def after_val_epoch(self, runner):
 
-        if runner.mode == 'val':
-
-            final_results_base = str(Path(runner.work_dir).parents[0])
-            final_results_base, amb = os.path.split(runner.work_dir)
-            final_results_path = os.path.join(final_results_base, 'all_test', runner.things_to_log['wandb_group'])
+        log_stats = False
+        final_results_base = str(Path(runner.work_dir).parents[0])
+        final_results_base, amb = os.path.split(runner.work_dir)
+        final_results_path = os.path.join(final_results_base, 'all_test', runner.things_to_log['wandb_group'])
+        if runner.mode == 'test':
             final_results_file = os.path.join(final_results_path,'test_' + str(runner._epoch) + '.csv')
+            log_stats = True
+        if runner.mode == 'val':
+            final_results_file = os.path.join(final_results_path,'val_' + str(runner._epoch) + '.csv')
+            log_stats = True
+
+        if log_stats:
+
             mmcv.mkdir_or_exist(final_results_path)
             header = ['amb', 'true_score', 'pred_round', 'pred_raw']
 
