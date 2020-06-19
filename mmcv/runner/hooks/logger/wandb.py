@@ -70,13 +70,17 @@ class WandbLoggerHook(LoggerHook):
             metrics[tag] = val
         metrics['learning_rate'] = runner.current_lr()[0]
         metrics['momentum'] = runner.current_momentum()[0]
-        if metrics:
-            self.wandb.log(metrics, step=runner._epoch)
-        print("logging: ", metrics, ", epoch: ", runner._epoch)
+        try:
+            if metrics:
+                self.wandb.log(metrics, step=runner._epoch)
+            print("logging: ", metrics, ", epoch: ", runner._epoch)
 
-        for plot_type in ['confusion_matrix', 'regression_plot']:
-            if plot_type in runner.log_buffer.output:
-                self.wandb.log({plot_type + "/" + runner.log_buffer.output[plot_type][1]: [self.wandb.Image(runner.log_buffer.output[plot_type][0])]}, step=runner._epoch)
+            for plot_type in ['confusion_matrix', 'regression_plot']:
+                if plot_type in runner.log_buffer.output:
+                    self.wandb.log({plot_type + "/" + runner.log_buffer.output[plot_type][1]: [self.wandb.Image(runner.log_buffer.output[plot_type][0])]}, step=runner._epoch)
+        except:
+            print("SOMETHING WENT WRONG WITH WANDB LOG")
+
 
     @master_only
     def after_run(self, runner):
