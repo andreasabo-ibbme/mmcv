@@ -15,6 +15,7 @@ from .utils import get_host_info, get_time_str, obj_from_dict
 import pandas as pd
 from sklearn.metrics import accuracy_score
 import numpy as np
+from pytorchtools import EarlyStopping
 
 
 class Runner(object):
@@ -44,7 +45,9 @@ class Runner(object):
                  log_level=logging.INFO,
                  logger=None,
                  meta=None, 
-                 things_to_log=None):
+                 things_to_log=None,
+                 early_stopping=False,
+                 force_run_all_epochs=True):
         assert callable(batch_processor)
         self.model = model
         if optimizer is not None:
@@ -53,7 +56,12 @@ class Runner(object):
             self.optimizer = None
         self.batch_processor = batch_processor
         self.things_to_log = things_to_log
+        self.early_stopping = early_stopping
+        self.force_run_all_epochs = force_run_all_epochs
 
+
+        self.es_patience = 10
+        self.es_start_up = 50
 
         # create work_dir
         if mmcv.is_str(work_dir):
@@ -285,14 +293,16 @@ class Runner(object):
         self.mode = 'train'
         self.data_loader = data_loader
         true_labels, predicted_labels, pred_raw = [], [], []
+        batch_loss = 0
 
         self.call_hook('before_train_epoch')
+
         for i, data_batch in enumerate(data_loader):
             self._inner_iter = i
             self.call_hook('before_train_iter')
-            outputs, raw = self.batch_processor(
+            outputs, raw, overall_loss = self.batch_processor(
                 self.model, data_batch, train_mode=True, **kwargs)
-
+            batch_loss += overall_loss*len(raw['true'])
             # print(true_labels, "vs. ", raw['true'])
             true_labels.extend(raw['true'])
             predicted_labels.extend(raw['pred'])
@@ -338,16 +348,18 @@ class Runner(object):
         self.data_loader = data_loader
         self.call_hook('before_val_epoch')
         true_labels, predicted_labels, pred_raw = [], [], []
+        batch_loss = 0
 
         for i, data_batch in enumerate(data_loader):
             self._inner_iter = i
             self.call_hook('before_val_iter')
             with torch.no_grad():
-                outputs, raw = self.batch_processor(
+                outputs, raw, overall_loss = self.batch_processor(
                     self.model, data_batch, train_mode=False, **kwargs)
                 true_labels.extend(raw['true'])
                 predicted_labels.extend(raw['pred'])
                 pred_raw.extend(raw['raw_preds'])
+                batch_loss += overall_loss*len(raw['true'])
 
             if not isinstance(outputs, dict):
                 raise TypeError('batch_processor() must return a dict')
@@ -367,8 +379,17 @@ class Runner(object):
         self.preds = predicted_labels
         self.labels = true_labels
         self.preds_raw = pred_raw
-        # print('labels', true_labels, 'oreds', predicted_labels)
+        # print('labels', true_labels, 'preds', predicted_labels)
         self.call_hook('after_val_epoch')
+
+        if not self.early_stopping_obj.early_stop and self.epoch >= self.es_start_up:
+           self.es_before_step = self.early_stopping_obj.early_stop
+           self.early_stopping_obj(batch_loss, self.model)
+
+            if self.es_before_step == False and self.early_stopping_obj.early_stop == True:
+                self.early_stopping_epoch = self.epoch
+
+
 
 
         return true_labels, predicted_labels
@@ -380,16 +401,18 @@ class Runner(object):
         self.data_loader = data_loader
         self.call_hook('before_val_epoch')
         true_labels, predicted_labels, pred_raw = [], [], []
+        batch_loss = 0
 
         for i, data_batch in enumerate(data_loader):
             self._inner_iter = i
             self.call_hook('before_val_iter')
             with torch.no_grad():
-                outputs, raw = self.batch_processor(
+                outputs, raw, overall_loss = self.batch_processor(
                     self.model, data_batch, train_mode=False, **kwargs)
                 true_labels.extend(raw['true'])
                 predicted_labels.extend(raw['pred'])
                 pred_raw.extend(raw['raw_preds'])
+                batch_loss += overall_loss*len(raw['true'])
 
             if not isinstance(outputs, dict):
                 raise TypeError('batch_processor() must return a dict')
@@ -462,6 +485,10 @@ class Runner(object):
         assert mmcv.is_list_of(workflow, tuple)
         assert len(data_loaders) == len(workflow)
 
+        if self.early_stopping:
+            es_checkpoint = self.work_dir + '/checkpoint.pt'
+            self.early_stopping_obj = EarlyStopping(patience=self.es_patience, verbose=True, path=es_checkpoint)
+
         self._max_epochs = max_epochs
         for i, flow in enumerate(workflow):
             mode, epochs = flow
@@ -510,10 +537,81 @@ class Runner(object):
                         df_all.loc[df_all['epoch'] == self.epoch-1,'val_acc'] = acc
 
 
+            if self.early_stopping:
+                if not self.force_run_all_epochs and self.early_stopping_obj.early_stop:
+                    break
             df_all.to_csv(self.work_dir + "/results_df.csv")
 
-        time.sleep(1)  # wait for some hooks like loggers to finish
+
+        # If we stopped early, evaluate the performance of the saved model on all datasets
+        if self.early_stopping:
+            self.log_buffer.update({'early_stop_epoch': self.early_stopping_epoch, 1) 
+
+        self.early_stop_eval(es_checkpoint, workflow)
+
+
+
+        time.sleep(10)  # wait for some hooks like loggers to finish
         self.call_hook('after_run')
+
+
+    def basic_no_log_eval(self, data_loader, **kwargs):
+        self.model.eval()
+        self.data_loader = data_loader
+        true_labels, predicted_labels, pred_raw = [], [], []
+        batch_loss = 0
+
+        for i, data_batch in enumerate(data_loader):
+            self._inner_iter = i
+            with torch.no_grad():
+                outputs, raw, overall_loss = self.batch_processor(
+                    self.model, data_batch, train_mode=False, **kwargs)
+                true_labels.extend(raw['true'])
+                predicted_labels.extend(raw['pred'])
+                pred_raw.extend(raw['raw_preds'])
+                batch_loss += overall_loss*len(raw['true'])
+
+
+        return true_labels, predicted_labels, pred_raw
+
+
+    def early_stop_eval(self, es_checkpoint, workflow):
+        self.model.load_state_dict(torch.load(es_checkpoint))
+        self.model.eval()
+
+        for i, flow in enumerate(workflow):
+            mode, _ = flow
+
+            # mode = "train", "val", "test"
+            true_labels, predicted_labels, raw_preds = basic_no_log_eval(data_loaders[i], **kwargs)
+            acc = accuracy_score(true_labels, predicted_labels)
+
+
+        final_results_base, amb = os.path.split(self.work_dir)
+        final_results_path = os.path.join(final_results_base, 'all_eval', runner.things_to_log['wandb_group'])
+        if mode == 'test':
+            final_results_file = os.path.join(final_results_path,'test.csv')
+        if mode == 'val':
+            final_results_file = os.path.join(final_results_path,'val.csv')
+        if mode == 'train':
+            final_results_file = os.path.join(final_results_path,'train.csv')           
+
+
+        mmcv.mkdir_or_exist(final_results_path)
+        header = ['amb', 'true_score', 'pred_round', 'pred_raw']
+
+        if not os.path.exists(final_results_file):
+            with open (final_results_file,'w') as f:                            
+                writer = csv.writer(f, delimiter=',') 
+                writer.writerow(header)
+
+
+        with open (final_results_file,'a') as f:                            
+            writer = csv.writer(f, delimiter=',') 
+            for num in range(len(runner.labels)):
+                writer.writerow([amb, true_labels[num], predicted_labels[num], raw_preds[num]])
+
+
 
     def register_lr_hook(self, lr_config):
         if isinstance(lr_config, dict):
