@@ -4,6 +4,7 @@ import os.path as osp
 import time
 
 import torch
+import csv
 
 import mmcv
 from .checkpoint import load_checkpoint, save_checkpoint
@@ -589,7 +590,7 @@ class Runner(object):
 
 
         final_results_base, amb = os.path.split(self.work_dir)
-        final_results_path = os.path.join(final_results_base, 'all_eval', runner.things_to_log['wandb_group'])
+        final_results_path = os.path.join(final_results_base, 'all_eval', self.things_to_log['wandb_group'])
         if mode == 'test':
             final_results_file = os.path.join(final_results_path,'test.csv')
         if mode == 'val':
@@ -609,7 +610,7 @@ class Runner(object):
 
         with open (final_results_file,'a') as f:                            
             writer = csv.writer(f, delimiter=',') 
-            for num in range(len(runner.labels)):
+            for num in range(len(true_labels)):
                 writer.writerow([amb, true_labels[num], predicted_labels[num], raw_preds[num]])
 
 
