@@ -15,7 +15,7 @@ from .utils import get_host_info, get_time_str, obj_from_dict
 import pandas as pd
 from sklearn.metrics import accuracy_score
 import numpy as np
-from earlystop.pytorchtools import EarlyStopping
+from ...early_stopping_pytorch/pytorchtools import EarlyStopping
 
 
 class Runner(object):
