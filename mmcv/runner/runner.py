@@ -50,7 +50,9 @@ class Runner(object):
                  meta=None, 
                  things_to_log=None,
                  early_stopping=False,
-                 force_run_all_epochs=True):
+                 force_run_all_epochs=True, 
+                 es_patience=10, 
+                 es_start_up=50):
         assert callable(batch_processor)
         self.model = model
         if optimizer is not None:
@@ -63,8 +65,8 @@ class Runner(object):
         self.force_run_all_epochs = force_run_all_epochs
 
 
-        self.es_patience = 2
-        self.es_start_up = 2
+        self.es_patience = es_patience
+        self.es_start_up = es_start_up
 
         # create work_dir
         if mmcv.is_str(work_dir):
