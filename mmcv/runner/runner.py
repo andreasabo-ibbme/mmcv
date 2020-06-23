@@ -564,7 +564,7 @@ class Runner(object):
         if self.early_stopping:
             self.log_buffer.update({'early_stop_epoch': self.early_stopping_epoch}, 1) 
 
-        self.early_stop_eval(es_checkpoint, workflow)
+        self.early_stop_eval(es_checkpoint, workflow, data_loaders)
 
 
 
@@ -575,7 +575,7 @@ class Runner(object):
 
 
 
-    def early_stop_eval(self, es_checkpoint, workflow):
+    def early_stop_eval(self, es_checkpoint, workflow, data_loaders):
         self.model.load_state_dict(torch.load(es_checkpoint))
         self.model.eval()
 
