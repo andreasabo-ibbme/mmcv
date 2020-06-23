@@ -61,8 +61,8 @@ class Runner(object):
         self.force_run_all_epochs = force_run_all_epochs
 
 
-        self.es_patience = 10
-        self.es_start_up = 50
+        self.es_patience = 5
+        self.es_start_up = 5
 
         # create work_dir
         if mmcv.is_str(work_dir):
@@ -467,6 +467,25 @@ class Runner(object):
 
         self.logger.info('resumed epoch %d, iter %d', self.epoch, self.iter)
 
+    def basic_no_log_eval(self, data_loader, **kwargs):
+        self.model.eval()
+        self.data_loader = data_loader
+        true_labels, predicted_labels, pred_raw = [], [], []
+        batch_loss = 0
+
+        for i, data_batch in enumerate(data_loader):
+            self._inner_iter = i
+            with torch.no_grad():
+                outputs, raw, overall_loss = self.batch_processor(
+                    self.model, data_batch, train_mode=False, **kwargs)
+                true_labels.extend(raw['true'])
+                predicted_labels.extend(raw['pred'])
+                pred_raw.extend(raw['raw_preds'])
+                batch_loss += overall_loss*len(raw['true'])
+
+
+        return true_labels, predicted_labels, pred_raw
+
     def run(self, data_loaders, workflow, max_epochs, **kwargs):
         """Start running.
 
@@ -553,24 +572,7 @@ class Runner(object):
         self.call_hook('after_run')
 
 
-    def basic_no_log_eval(self, data_loader, **kwargs):
-        self.model.eval()
-        self.data_loader = data_loader
-        true_labels, predicted_labels, pred_raw = [], [], []
-        batch_loss = 0
 
-        for i, data_batch in enumerate(data_loader):
-            self._inner_iter = i
-            with torch.no_grad():
-                outputs, raw, overall_loss = self.batch_processor(
-                    self.model, data_batch, train_mode=False, **kwargs)
-                true_labels.extend(raw['true'])
-                predicted_labels.extend(raw['pred'])
-                pred_raw.extend(raw['raw_preds'])
-                batch_loss += overall_loss*len(raw['true'])
-
-
-        return true_labels, predicted_labels, pred_raw
 
 
     def early_stop_eval(self, es_checkpoint, workflow):
