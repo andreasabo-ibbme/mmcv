@@ -566,6 +566,9 @@ class Runner(object):
         if self.early_stopping:
             self.log_buffer.update({'early_stop_epoch': self.early_stopping_epoch}, 1) 
 
+        print("*****************************now doing eval: ")
+        print("workflow", workflow)
+        print("data_loaders", data_loaders)
         self.early_stop_eval(es_checkpoint, workflow, data_loaders, **kwargs)
 
 
