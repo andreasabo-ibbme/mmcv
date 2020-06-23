@@ -592,29 +592,29 @@ class Runner(object):
             acc = accuracy_score(true_labels, predicted_labels)
 
 
-        final_results_base, amb = os.path.split(self.work_dir)
-        final_results_path = os.path.join(final_results_base, 'all_eval', self.things_to_log['wandb_group'])
-        if mode == 'test':
-            final_results_file = os.path.join(final_results_path,'test.csv')
-        if mode == 'val':
-            final_results_file = os.path.join(final_results_path,'val.csv')
-        if mode == 'train':
-            final_results_file = os.path.join(final_results_path,'train.csv')           
+            final_results_base, amb = os.path.split(self.work_dir)
+            final_results_path = os.path.join(final_results_base, 'all_eval', self.things_to_log['wandb_group'])
+            if mode == 'test':
+                final_results_file = os.path.join(final_results_path,'test.csv')
+            if mode == 'val':
+                final_results_file = os.path.join(final_results_path,'val.csv')
+            if mode == 'train':
+                final_results_file = os.path.join(final_results_path,'train.csv')           
 
-        print("saving to ", final_results_file)
-        mmcv.mkdir_or_exist(final_results_path)
-        header = ['amb', 'true_score', 'pred_round', 'pred_raw']
+            print("saving to ", final_results_file)
+            mmcv.mkdir_or_exist(final_results_path)
+            header = ['amb', 'true_score', 'pred_round', 'pred_raw']
 
-        if not os.path.exists(final_results_file):
-            with open (final_results_file,'w') as f:                            
+            if not os.path.exists(final_results_file):
+                with open (final_results_file,'w') as f:                            
+                    writer = csv.writer(f, delimiter=',') 
+                    writer.writerow(header)
+
+
+            with open (final_results_file,'a') as f:                            
                 writer = csv.writer(f, delimiter=',') 
-                writer.writerow(header)
-
-
-        with open (final_results_file,'a') as f:                            
-            writer = csv.writer(f, delimiter=',') 
-            for num in range(len(true_labels)):
-                writer.writerow([amb, true_labels[num], predicted_labels[num], raw_preds[num]])
+                for num in range(len(true_labels)):
+                    writer.writerow([amb, true_labels[num], predicted_labels[num], raw_preds[num]])
 
 
 
