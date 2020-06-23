@@ -383,8 +383,8 @@ class Runner(object):
         self.call_hook('after_val_epoch')
 
         if not self.early_stopping_obj.early_stop and self.epoch >= self.es_start_up:
-           self.es_before_step = self.early_stopping_obj.early_stop
-           self.early_stopping_obj(batch_loss, self.model)
+            self.es_before_step = self.early_stopping_obj.early_stop
+            self.early_stopping_obj(batch_loss, self.model)
 
             if self.es_before_step == False and self.early_stopping_obj.early_stop == True:
                 self.early_stopping_epoch = self.epoch
