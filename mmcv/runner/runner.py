@@ -371,7 +371,7 @@ class Runner(object):
             self.call_hook('after_val_iter')
         
 
-
+        batch_loss = batch_loss / len(true_labels)
         # true_labels, predicted_labels = self.remove_non_labelled_data(true_labels, predicted_labels)
         acc = accuracy_score(true_labels, predicted_labels)
         log_this = {'accuracy': acc}
@@ -564,7 +564,7 @@ class Runner(object):
         if self.early_stopping:
             self.log_buffer.update({'early_stop_epoch': self.early_stopping_epoch}, 1) 
 
-        self.early_stop_eval(es_checkpoint, workflow, data_loaders)
+        self.early_stop_eval(es_checkpoint, workflow, data_loaders, **kwargs)
 
 
 
@@ -575,7 +575,7 @@ class Runner(object):
 
 
 
-    def early_stop_eval(self, es_checkpoint, workflow, data_loaders):
+    def early_stop_eval(self, es_checkpoint, workflow, data_loaders, **kwargs):
         self.model.load_state_dict(torch.load(es_checkpoint))
         self.model.eval()
 
