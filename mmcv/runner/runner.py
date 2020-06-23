@@ -389,9 +389,6 @@ class Runner(object):
             if self.es_before_step == False and self.early_stopping_obj.early_stop == True:
                 self.early_stopping_epoch = self.epoch
 
-
-
-
         return true_labels, predicted_labels
 
 
