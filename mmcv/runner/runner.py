@@ -598,7 +598,7 @@ class Runner(object):
         if mode == 'train':
             final_results_file = os.path.join(final_results_path,'train.csv')           
 
-
+        print("saving to ", final_results_file)
         mmcv.mkdir_or_exist(final_results_path)
         header = ['amb', 'true_score', 'pred_round', 'pred_raw']
 
