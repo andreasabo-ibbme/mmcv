@@ -583,7 +583,7 @@ class Runner(object):
             mode, _ = flow
 
             # mode = "train", "val", "test"
-            true_labels, predicted_labels, raw_preds = basic_no_log_eval(data_loaders[i], **kwargs)
+            true_labels, predicted_labels, raw_preds = self.basic_no_log_eval(data_loaders[i], **kwargs)
             acc = accuracy_score(true_labels, predicted_labels)
 
 
