@@ -16,6 +16,7 @@ import pandas as pd
 from sklearn.metrics import accuracy_score
 import numpy as np
 from .pytorchtools import EarlyStopping
+import os
 # from ...early_stopping_pytorch/pytorchtools import EarlyStopping
 
 
@@ -61,8 +62,8 @@ class Runner(object):
         self.force_run_all_epochs = force_run_all_epochs
 
 
-        self.es_patience = 5
-        self.es_start_up = 5
+        self.es_patience = 2
+        self.es_start_up = 2
 
         # create work_dir
         if mmcv.is_str(work_dir):
