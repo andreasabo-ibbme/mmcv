@@ -392,9 +392,9 @@ class Runner(object):
             self.early_stopping_obj(batch_loss, self.model)
 
             if self.es_before_step == False and self.early_stopping_obj.early_stop == True:
-                self.early_stopping_epoch = self.epoch
+                self.early_stopping_epoch = self.epoch - self.es_patience
 
-                self.log_buffer.update({'stop_epoch_val': self.epoch},
+                self.log_buffer.update({'stop_epoch_val': self.early_stopping_epoch},
                                         1)
 
         return true_labels, predicted_labels
