@@ -394,6 +394,9 @@ class Runner(object):
             if self.es_before_step == False and self.early_stopping_obj.early_stop == True:
                 self.early_stopping_epoch = self.epoch
 
+                self.log_buffer.update({'stop_epoch_val': self.epoch},
+                                        1)
+
         return true_labels, predicted_labels
 
 
@@ -568,6 +571,7 @@ class Runner(object):
         if self.early_stopping:
             self.log_buffer.update({'early_stop_epoch': self.early_stopping_epoch}, 1) 
 
+        print('stopped at epoch: ', self.early_stopping_epoch)
         print("*****************************now doing eval: ")
         print("workflow", workflow)
         print("data_loaders", data_loaders)
