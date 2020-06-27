@@ -164,7 +164,7 @@ class LoggerHook(Hook):
 
         cm = cm_new
 
-        classes = [i + 1 for i in range(max_cm_size)]
+        classes = [i for i in range(max_cm_size)]
         # print(cm)
         # classes = classes[unique_labels(y_true, y_pred).astype(int)]
         if normalize:
