@@ -152,7 +152,7 @@ class LoggerHook(Hook):
         y_all_unique = list(set(all_labels))
         y_all_unique.sort()
 
-        max_cm_size = max(len(classes), y_all_unique)
+        max_cm_size = max(len(classes), y_all_unique[-1])
 
         cm_new = np.zeros((max_cm_size, max_cm_size), dtype=np.int64)
         for i in range(len(y_all_unique)):
