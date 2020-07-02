@@ -21,8 +21,7 @@ class OptimizerHook(Hook):
         try:
             runner.outputs['loss'].backward()
             print("=========================gardients===================")
-            for p in runner.model.parameters():
-                print(p.grad.norm())
+            print('runner.model.conv11.weight.grad', runner.model.conv1.weight.grad)
 
         except:
             print('bad loss is: ', runner.outputs['loss'])
