@@ -20,8 +20,6 @@ class OptimizerHook(Hook):
         runner.optimizer.zero_grad()
         try:
             runner.outputs['loss'].backward()
-            print("=========================gardients===================")
-            print('runner.model.conv11.weight.grad', runner.model.conv1.weight.grad)
 
         except:
             print('bad loss is: ', runner.outputs['loss'])
