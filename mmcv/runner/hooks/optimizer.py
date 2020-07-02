@@ -20,6 +20,10 @@ class OptimizerHook(Hook):
         runner.optimizer.zero_grad()
         try:
             runner.outputs['loss'].backward()
+            print("=========================gardients===================")
+            for p in runner.model.parameters():
+                print(p.grad.norm())
+
         except:
             print('bad loss is: ', runner.outputs['loss'])
             raise ValueError("stop")
