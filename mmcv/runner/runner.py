@@ -395,7 +395,11 @@ class Runner(object):
 
                 self.log_buffer.update({'stop_epoch_val': self.early_stopping_epoch}, 1)
                 print("Updated the buffer with the stop epoch: ", self.early_stopping_epoch)
-                
+        
+        if not self.early_stopping and self.epoch == self._max_epochs: #dont have early stopping
+            torch.save(self.model.state_dict(), self.es_checkpoint)
+
+
         self.call_hook('after_val_epoch')
 
         return true_labels, predicted_labels
@@ -510,8 +514,9 @@ class Runner(object):
         assert mmcv.is_list_of(workflow, tuple)
         assert len(data_loaders) == len(workflow)
 
+        es_checkpoint = self.work_dir + '/checkpoint.pt'
+        self.es_checkpoint = es_checkpoint
         if self.early_stopping:
-            es_checkpoint = self.work_dir + '/checkpoint.pt'
             self.early_stopping_obj = EarlyStopping(patience=self.es_patience, verbose=True, path=es_checkpoint)
 
         self._max_epochs = max_epochs
@@ -573,11 +578,11 @@ class Runner(object):
             self.log_buffer.update({'early_stop_epoch': self.early_stopping_epoch}, 1) 
 
             print('stopped at epoch: ', self.early_stopping_epoch)
-            
-        print("*****************************now doing eval: ")
-        print("workflow", workflow)
-        print("data_loaders", data_loaders)
-        self.early_stop_eval(es_checkpoint, workflow, data_loaders, **kwargs)
+
+            print("*****************************now doing eval: ")
+            print("workflow", workflow)
+            print("data_loaders", data_loaders)
+            self.early_stop_eval(es_checkpoint, workflow, data_loaders, **kwargs)
 
 
 
