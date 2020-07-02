@@ -386,15 +386,14 @@ class Runner(object):
         self.preds_raw = pred_raw
         # print('labels', true_labels, 'preds', predicted_labels)
 
-        if not self.early_stopping_obj.early_stop and self.epoch >= self.es_start_up:
+        if self.early_stopping and not self.early_stopping_obj.early_stop and self.epoch >= self.es_start_up:
             self.es_before_step = self.early_stopping_obj.early_stop
             self.early_stopping_obj(batch_loss, self.model)
 
             if self.es_before_step == False and self.early_stopping_obj.early_stop == True:
                 self.early_stopping_epoch = self.epoch - self.es_patience
 
-                self.log_buffer.update({'stop_epoch_val': self.early_stopping_epoch},
-                                        1)
+                self.log_buffer.update({'stop_epoch_val': self.early_stopping_epoch}, 1)
                 print("Updated the buffer with the stop epoch: ", self.early_stopping_epoch)
                 
         self.call_hook('after_val_epoch')
