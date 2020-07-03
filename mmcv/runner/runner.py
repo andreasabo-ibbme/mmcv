@@ -315,8 +315,9 @@ class Runner(object):
             # If we get a nan in the loss, just ignore it
             if not np.isnan(overall_loss):
                 batch_loss += overall_loss*len(raw['true'])
+                print("batch loss is now: ", batch_loss)
             else:
-                print('got non in training loss')
+                print('got NAN in training loss')
 
             true_labels.extend(raw['true'])
             predicted_labels.extend(raw['pred'])
@@ -338,6 +339,7 @@ class Runner(object):
         # true_labels, predicted_labels = self.remove_non_labelled_data(true_labels, predicted_labels)
         # print(len(true_labels), true_labels)
         # print(len(predicted_labels), predicted_labels)
+        batch_loss = batch_loss / len(true_labels)
 
         if not self.pretrain_mode:
             acc = accuracy_score(true_labels, predicted_labels)
