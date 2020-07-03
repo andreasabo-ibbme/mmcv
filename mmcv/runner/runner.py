@@ -315,8 +315,6 @@ class Runner(object):
             # If we get a nan in the loss, just ignore it
             if not np.isnan(overall_loss):
                 batch_loss += overall_loss*len(raw['true'])
-            else:
-                raise ValueError("GOT A NAN IN THE LOSS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
             # print(true_labels, "vs. ", raw['true'])
             true_labels.extend(raw['true'])
             predicted_labels.extend(raw['pred'])
