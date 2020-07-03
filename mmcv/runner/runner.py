@@ -596,10 +596,13 @@ class Runner(object):
 
                 # Reset the model parameters
                 print("======================================going to retrain again, resetting parameters...")
-                print(e)
+                print("This is the error we got:", e)
+                try:
+                    self.model.module.apply(weight_reset)
+                    print('successfully reset weights')
+                except Exception as e: 
+                    print("This is the error we got _ 2:", e)
 
-                self.model.apply(weight_reset)
-                print('successfully reset weights')
 
         # If we stopped early, evaluate the performance of the saved model on all datasets
         if self.early_stopping:
