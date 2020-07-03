@@ -599,7 +599,7 @@ class Runner(object):
                 print(e)
 
                 self.model.apply(weight_reset)
-
+                print('successfully reset weights')
 
         # If we stopped early, evaluate the performance of the saved model on all datasets
         if self.early_stopping:
