@@ -591,11 +591,13 @@ class Runner(object):
 
                     # We have successfully finished this participant
                     not_done = False
-            except:
+            except Exception as e: 
                 not_done = True
 
                 # Reset the model parameters
                 print("======================================going to retrain again, resetting parameters...")
+                print(e)
+
                 self.model.apply(weight_reset)
 
 
