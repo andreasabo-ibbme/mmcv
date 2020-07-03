@@ -601,6 +601,7 @@ class Runner(object):
                     not_done = False
             except Exception as e: 
                 not_done = True
+                logging.exception("loss calc message=================================================")
 
                 # Reset the model parameters
                 print("======================================going to retrain again, resetting parameters...")
