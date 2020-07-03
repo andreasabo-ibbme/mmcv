@@ -456,17 +456,22 @@ class Runner(object):
         
 
 
-        # true_labels, predicted_labels = self.remove_non_labelled_data(true_labels, predicted_labels)
-        acc = accuracy_score(true_labels, predicted_labels)
-        log_this = {'accuracy': acc}
-        self.log_buffer.update(log_this, 1) 
+        batch_loss = batch_loss / len(true_labels)
 
-        self.preds = predicted_labels
-        self.labels = true_labels
-        self.preds_raw = pred_raw
-        self.call_hook('after_val_epoch')
-        # print('test', 'labels', true_labels, 'oreds', predicted_labels)
+        if not self.pretrain_mode:
+            acc = accuracy_score(true_labels, predicted_labels)
+            log_this = {'accuracy': acc}
+            self.log_buffer.update(log_this, 1) 
 
+            self.preds = predicted_labels
+            self.labels = true_labels
+            self.preds_raw = pred_raw
+            self.call_hook('after_val_epoch')
+    
+        else:
+            log_this = {'pretrain_loss': batch_loss}
+            self.log_buffer.update(log_this, 1) 
+            self.call_hook('buffer_log_only')
 
         return true_labels, predicted_labels
 
