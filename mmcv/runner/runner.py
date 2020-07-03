@@ -525,6 +525,7 @@ class Runner(object):
         not_done = True
         while not_done:
             print('===================starting training...=========================')
+            print(kwargs)
             # Reset the epoch counters
             self.mode = None
             self._epoch = 0
