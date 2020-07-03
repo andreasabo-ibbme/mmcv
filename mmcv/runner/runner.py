@@ -21,7 +21,7 @@ import os
 # from ...early_stopping_pytorch/pytorchtools import EarlyStopping
 
 def weight_reset(m):
-    if isinstance(m, nn.Conv1d) or isinstance(m, nn.Conv2d) or isinstance(m, nn.Conv3d) or isinstance(m, nn.Linear):
+    if isinstance(m, torch.nn.Conv1d) or isinstance(m, torch.nn.Conv2d) or isinstance(m, torch.nn.Conv3d) or isinstance(m, torch.nn.Linear):
         m.reset_parameters()
 
 
