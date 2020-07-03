@@ -595,25 +595,25 @@ class Runner(object):
                 not_done = True
 
                 # Reset the model parameters
-                print("going to retrain again, resetting parameters...")
+                print("======================================going to retrain again, resetting parameters...")
                 self.model.apply(weight_reset)
 
 
-            # If we stopped early, evaluate the performance of the saved model on all datasets
-            if self.early_stopping:
-                self.log_buffer.update({'early_stop_epoch': self.early_stopping_epoch}, 1) 
+        # If we stopped early, evaluate the performance of the saved model on all datasets
+        if self.early_stopping:
+            self.log_buffer.update({'early_stop_epoch': self.early_stopping_epoch}, 1) 
 
-                print('stopped at epoch: ', self.early_stopping_epoch)
+            print('stopped at epoch: ', self.early_stopping_epoch)
 
-                print("*****************************now doing eval: ")
-                print("workflow", workflow)
-                print("data_loaders", data_loaders)
-                self.early_stop_eval(es_checkpoint, workflow, data_loaders, **kwargs)
+            print("*****************************now doing eval: ")
+            print("workflow", workflow)
+            print("data_loaders", data_loaders)
+            self.early_stop_eval(es_checkpoint, workflow, data_loaders, **kwargs)
 
 
 
-            time.sleep(10)  # wait for some hooks like loggers to finish
-            self.call_hook('after_run')
+        time.sleep(10)  # wait for some hooks like loggers to finish
+        self.call_hook('after_run')
 
 
 
