@@ -36,6 +36,9 @@ class Hook(object):
     def after_val_epoch(self, runner):
         self.after_epoch(runner)
 
+    def buffer_log_only(self, runner):
+        self.after_epoch(runner)
+
     def before_train_iter(self, runner):
         self.before_iter(runner)
 

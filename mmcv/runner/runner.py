@@ -351,9 +351,10 @@ class Runner(object):
 
             self.call_hook('after_train_epoch')
 
+        else:
+            self.call_hook('buffer_log_only')
         print("end training epoch")
         return true_labels, predicted_labels
-
 
     def val(self, data_loader, **kwargs):
         self.model.eval()
@@ -411,7 +412,11 @@ class Runner(object):
             torch.save(self.model.state_dict(), self.es_checkpoint)
 
 
-        self.call_hook('after_val_epoch')
+        if self.pretrain_mode:
+            self.call_hook('buffer_log_only')
+        else:
+            self.call_hook('after_val_epoch')
+
         print("done val epoch")
         return true_labels, predicted_labels
 

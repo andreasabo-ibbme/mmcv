@@ -63,6 +63,13 @@ class LoggerHook(Hook):
             if self.reset_flag:
                 runner.log_buffer.clear_output()
 
+    def buffer_log_only(self, runner):
+        runner.log_buffer.average()
+        self.log(runner)
+        if self.reset_flag:
+            runner.log_buffer.clear_output()
+
+            
     def after_val_epoch(self, runner):
 
         log_stats = False
