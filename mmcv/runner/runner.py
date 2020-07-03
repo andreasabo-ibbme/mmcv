@@ -325,7 +325,7 @@ class Runner(object):
 
             if not isinstance(outputs, dict):
                 raise TypeError('batch_processor() must return a dict')
-            if 'log_vars' in outputs:
+            if 'log_vars' in outputs and not self.pretrain_mode:
                 self.log_buffer.update(outputs['log_vars'],
                                        outputs['num_samples'])
 
@@ -340,6 +340,7 @@ class Runner(object):
         # print(len(true_labels), true_labels)
         # print(len(predicted_labels), predicted_labels)
         batch_loss = batch_loss / len(true_labels)
+        print("average batch loss: ", batch_loss)
 
         if not self.pretrain_mode:
             acc = accuracy_score(true_labels, predicted_labels)
@@ -354,6 +355,8 @@ class Runner(object):
             self.call_hook('after_train_epoch')
 
         else:
+            log_this = {'pretrain_loss': batch_loss}
+            self.log_buffer.update(log_this, 1) 
             self.call_hook('buffer_log_only')
         print("end training epoch")
         return true_labels, predicted_labels
