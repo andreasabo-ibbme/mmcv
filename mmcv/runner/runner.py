@@ -510,84 +510,102 @@ class Runner(object):
                 iteratively.
             max_epochs (int): Total training epochs.
         """
-        assert isinstance(data_loaders, list)
-        assert mmcv.is_list_of(workflow, tuple)
-        assert len(data_loaders) == len(workflow)
+        not_done = True
+        while not_done:
+            
+            # Reset the epoch counters
+            self.mode = None
+            self._epoch = 0
+            self._iter = 0
+            self._inner_iter = 0
+            self._max_epochs = 0
+            self._max_iters = 0
 
-        es_checkpoint = self.work_dir + '/checkpoint.pt'
-        self.es_checkpoint = es_checkpoint
-        if self.early_stopping:
-            self.early_stopping_obj = EarlyStopping(patience=self.es_patience, verbose=True, path=es_checkpoint)
+            try: 
+                print("Starting training for ", self.work_dir)
+                assert isinstance(data_loaders, list)
+                assert mmcv.is_list_of(workflow, tuple)
+                assert len(data_loaders) == len(workflow)
 
-        self._max_epochs = max_epochs
-        for i, flow in enumerate(workflow):
-            mode, epochs = flow
-            if mode == 'train':
-                self._max_iters = self._max_epochs * len(data_loaders[i])
-                break
+                es_checkpoint = self.work_dir + '/checkpoint.pt'
+                self.es_checkpoint = es_checkpoint
+                if self.early_stopping:
+                    self.early_stopping_obj = EarlyStopping(patience=self.es_patience, verbose=True, path=es_checkpoint)
 
-        work_dir = self.work_dir if self.work_dir is not None else 'NONE'
-        self.logger.info('Start running, host: %s, work_dir: %s',
-                         get_host_info(), work_dir)
-        self.logger.info('workflow: %s, max: %d epochs', workflow, max_epochs)
-        self.call_hook('before_run')
-        print("work dir: ", self.work_dir)
-        train_accs = np.zeros((1, max_epochs)) * np.nan
-        val_accs = np.zeros((1, max_epochs)) * np.nan
-         
-        columns = ['epoch', 'train_acc', 'val_acc']
-        df_all = pd.DataFrame(columns=columns)
-
-        while self.epoch < max_epochs:
-            for i, flow in enumerate(workflow):
-                mode, epochs = flow
-                if isinstance(mode, str):  # self.train()
-                    if not hasattr(self, mode):
-                        raise ValueError(
-                            f'runner has no method named "{mode}" to run an '
-                            'epoch')
-                    epoch_runner = getattr(self, mode)
-                elif callable(mode):  # custom train()
-                    epoch_runner = mode
-                else:
-                    raise TypeError('mode in workflow must be a str or '
-                                    f'callable function, not {type(mode)}')
-                for _ in range(epochs):
-                    if mode == 'train' and self.epoch >= max_epochs:
-                        return
-                    true_labels, predicted_labels = epoch_runner(data_loaders[i], **kwargs)
-
-                    acc = accuracy_score(true_labels, predicted_labels)
-
+                self._max_epochs = max_epochs
+                for i, flow in enumerate(workflow):
+                    mode, epochs = flow
                     if mode == 'train':
-                        df_all.loc[len(df_all)] = [self.epoch-1, acc, val_accs[0, self.epoch - 1]]
+                        self._max_iters = self._max_epochs * len(data_loaders[i])
+                        break
 
-                    elif mode == 'val':
-                        val_accs[0, self.epoch-1] = acc
-                        df_all.loc[df_all['epoch'] == self.epoch-1,'val_acc'] = acc
+                work_dir = self.work_dir if self.work_dir is not None else 'NONE'
+                self.logger.info('Start running, host: %s, work_dir: %s',
+                                get_host_info(), work_dir)
+                self.logger.info('workflow: %s, max: %d epochs', workflow, max_epochs)
+                self.call_hook('before_run')
+                print("work dir: ", self.work_dir)
+                train_accs = np.zeros((1, max_epochs)) * np.nan
+                val_accs = np.zeros((1, max_epochs)) * np.nan
+                
+                columns = ['epoch', 'train_acc', 'val_acc']
+                df_all = pd.DataFrame(columns=columns)
+
+                while self.epoch < max_epochs:
+                    for i, flow in enumerate(workflow):
+                        mode, epochs = flow
+                        if isinstance(mode, str):  # self.train()
+                            if not hasattr(self, mode):
+                                raise ValueError(
+                                    f'runner has no method named "{mode}" to run an '
+                                    'epoch')
+                            epoch_runner = getattr(self, mode)
+                        elif callable(mode):  # custom train()
+                            epoch_runner = mode
+                        else:
+                            raise TypeError('mode in workflow must be a str or '
+                                            f'callable function, not {type(mode)}')
+                        for _ in range(epochs):
+                            if mode == 'train' and self.epoch >= max_epochs:
+                                return
+                            true_labels, predicted_labels = epoch_runner(data_loaders[i], **kwargs)
+
+                            acc = accuracy_score(true_labels, predicted_labels)
+
+                            if mode == 'train':
+                                df_all.loc[len(df_all)] = [self.epoch-1, acc, val_accs[0, self.epoch - 1]]
+
+                            elif mode == 'val':
+                                val_accs[0, self.epoch-1] = acc
+                                df_all.loc[df_all['epoch'] == self.epoch-1,'val_acc'] = acc
 
 
+                    if self.early_stopping:
+                        if not self.force_run_all_epochs and self.early_stopping_obj.early_stop:
+                            break
+                    df_all.to_csv(self.work_dir + "/results_df.csv")
+
+                    # We have successfully finished this participant
+                    not_done = False
+            except:
+                not_done = True
+
+
+            # If we stopped early, evaluate the performance of the saved model on all datasets
             if self.early_stopping:
-                if not self.force_run_all_epochs and self.early_stopping_obj.early_stop:
-                    break
-            df_all.to_csv(self.work_dir + "/results_df.csv")
+                self.log_buffer.update({'early_stop_epoch': self.early_stopping_epoch}, 1) 
 
+                print('stopped at epoch: ', self.early_stopping_epoch)
 
-        # If we stopped early, evaluate the performance of the saved model on all datasets
-        if self.early_stopping:
-            self.log_buffer.update({'early_stop_epoch': self.early_stopping_epoch}, 1) 
-
-            print('stopped at epoch: ', self.early_stopping_epoch)
-
-            print("*****************************now doing eval: ")
-            print("workflow", workflow)
-            print("data_loaders", data_loaders)
-            self.early_stop_eval(es_checkpoint, workflow, data_loaders, **kwargs)
+                print("*****************************now doing eval: ")
+                print("workflow", workflow)
+                print("data_loaders", data_loaders)
+                self.early_stop_eval(es_checkpoint, workflow, data_loaders, **kwargs)
 
 
 
-        time.sleep(10)  # wait for some hooks like loggers to finish
-        self.call_hook('after_run')
+            time.sleep(10)  # wait for some hooks like loggers to finish
+            self.call_hook('after_run')
 
 
 
