@@ -523,12 +523,17 @@ class Runner(object):
             max_epochs (int): Total training epochs.
         """
         not_done = True
-        kwargs0 = {k: v for k, v in kwargs.items() if k != 'supcon_pretraining'}
-        
+        try:
+            self.pretrain_mode = kwargs['supcon_pretraining']
+        except:
+            self.pretrain_mode = False
+
+        print('pretraining: ', self.pretrain_mode)
+        kwargs = {k: v for k, v in kwargs.items() if k != 'supcon_pretraining'}
+
         while not_done:
             print('===================starting training...=========================')
             print(kwargs)
-            print(kwargs0)
             # Reset the epoch counters
             self.mode = None
             self._epoch = 0
