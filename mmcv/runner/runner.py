@@ -649,7 +649,9 @@ class Runner(object):
             print("*****************************now doing eval: ")
             print("workflow", workflow)
             print("data_loaders", data_loaders)
-            self.early_stop_eval(es_checkpoint, workflow, data_loaders, **kwargs)
+
+            if not self.pretrain_mode:
+                self.early_stop_eval(es_checkpoint, workflow, data_loaders, **kwargs)
 
 
 
