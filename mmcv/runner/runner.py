@@ -311,7 +311,12 @@ class Runner(object):
             self.call_hook('before_train_iter')
             outputs, raw, overall_loss = self.batch_processor(
                 self.model, data_batch, train_mode=True, **kwargs)
-            batch_loss += overall_loss*len(raw['true'])
+
+            # If we get a nan in the loss, just ignore it
+            if not np.isnan(overall_loss):
+                batch_loss += overall_loss*len(raw['true'])
+            else:
+                raise ValueError("GOT A NAN IN THE LOSS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
             # print(true_labels, "vs. ", raw['true'])
             true_labels.extend(raw['true'])
             predicted_labels.extend(raw['pred'])
@@ -368,7 +373,8 @@ class Runner(object):
                 true_labels.extend(raw['true'])
                 predicted_labels.extend(raw['pred'])
                 pred_raw.extend(raw['raw_preds'])
-                batch_loss += overall_loss*len(raw['true'])
+                if not np.isnan(overall_loss):
+                    batch_loss += overall_loss*len(raw['true'])
 
             if not isinstance(outputs, dict):
                 raise TypeError('batch_processor() must return a dict')
@@ -426,7 +432,8 @@ class Runner(object):
                 true_labels.extend(raw['true'])
                 predicted_labels.extend(raw['pred'])
                 pred_raw.extend(raw['raw_preds'])
-                batch_loss += overall_loss*len(raw['true'])
+                if not np.isnan(overall_loss):
+                    batch_loss += overall_loss*len(raw['true'])
 
             if not isinstance(outputs, dict):
                 raise TypeError('batch_processor() must return a dict')
