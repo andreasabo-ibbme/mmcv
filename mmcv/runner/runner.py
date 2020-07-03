@@ -331,7 +331,8 @@ class Runner(object):
 
                                   
             self.outputs = outputs
-            self.call_hook('after_train_iter')
+            if not np.isnan(overall_loss):
+                self.call_hook('after_train_iter') # the backward step is called here
             self._iter += 1
         self._epoch += 1
         print("end model train epoch")
