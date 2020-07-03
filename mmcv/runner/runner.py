@@ -317,10 +317,11 @@ class Runner(object):
                 batch_loss += overall_loss*len(raw['true'])
             else:
                 print('got non in training loss')
-            # print(true_labels, "vs. ", raw['true'])
+
             true_labels.extend(raw['true'])
             predicted_labels.extend(raw['pred'])
             pred_raw.extend(raw['raw_preds'])
+
             if not isinstance(outputs, dict):
                 raise TypeError('batch_processor() must return a dict')
             if 'log_vars' in outputs:
@@ -337,22 +338,19 @@ class Runner(object):
         # true_labels, predicted_labels = self.remove_non_labelled_data(true_labels, predicted_labels)
         # print(len(true_labels), true_labels)
         # print(len(predicted_labels), predicted_labels)
-        acc = accuracy_score(true_labels, predicted_labels)
-        log_this = {'accuracy': acc}
-        self.log_buffer.update(log_this, 1) 
 
-        self.preds = predicted_labels
-        self.labels = true_labels
-        self.preds_raw = pred_raw
-        self.call_hook('after_val_epoch')
+        if not self.pretrain_mode:
+            acc = accuracy_score(true_labels, predicted_labels)
+            log_this = {'accuracy': acc}
+            self.log_buffer.update(log_this, 1) 
 
-        self.call_hook('after_train_epoch')
-        # print('train', 'labels', true_labels, 'oreds', predicted_labels)
+            self.preds = predicted_labels
+            self.labels = true_labels
+            self.preds_raw = pred_raw
+            self.call_hook('after_val_epoch')
 
-        # print(len(true_labels), len(predicted_labels))
-        # print(true_labels)
-        # print(predicted_labels)
-        # print("what is this (train): ", accuracy_score(true_labels, predicted_labels))
+            self.call_hook('after_train_epoch')
+
         print("end training epoch")
         return true_labels, predicted_labels
 
@@ -528,12 +526,10 @@ class Runner(object):
         except:
             self.pretrain_mode = False
 
-        print('pretraining: ', self.pretrain_mode)
         kwargs = {k: v for k, v in kwargs.items() if k != 'supcon_pretraining'}
 
         while not_done:
             print('===================starting training...=========================')
-            print(kwargs)
             # Reset the epoch counters
             self.mode = None
             self._epoch = 0
@@ -591,23 +587,28 @@ class Runner(object):
                                 return
                             true_labels, predicted_labels = epoch_runner(data_loaders[i], **kwargs)
 
-                            acc = accuracy_score(true_labels, predicted_labels)
+                            if not self.pretrain_mode:
+                                acc = accuracy_score(true_labels, predicted_labels)
 
-                            if mode == 'train':
-                                df_all.loc[len(df_all)] = [self.epoch-1, acc, val_accs[0, self.epoch - 1]]
+                                if mode == 'train':
+                                    df_all.loc[len(df_all)] = [self.epoch-1, acc, val_accs[0, self.epoch - 1]]
 
-                            elif mode == 'val':
-                                val_accs[0, self.epoch-1] = acc
-                                df_all.loc[df_all['epoch'] == self.epoch-1,'val_acc'] = acc
-
+                                elif mode == 'val':
+                                    val_accs[0, self.epoch-1] = acc
+                                    df_all.loc[df_all['epoch'] == self.epoch-1,'val_acc'] = acc
+                            else: 
+                                # What to do after epoch if we're in pretrain mode
+                                pass
+                    if not self.pretrain_mode:
+                        df_all.to_csv(self.work_dir + "/results_df.csv")
 
                     if self.early_stopping:
                         if not self.force_run_all_epochs and self.early_stopping_obj.early_stop:
                             break
-                    df_all.to_csv(self.work_dir + "/results_df.csv")
 
                     # We have successfully finished this participant
                     not_done = False
+                    
             except Exception as e: 
                 not_done = True
                 logging.exception("loss calc message=================================================")
