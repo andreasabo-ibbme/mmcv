@@ -386,13 +386,14 @@ class Runner(object):
 
         batch_loss = batch_loss / len(true_labels)
         # true_labels, predicted_labels = self.remove_non_labelled_data(true_labels, predicted_labels)
-        acc = accuracy_score(true_labels, predicted_labels)
-        log_this = {'accuracy': acc}
-        self.log_buffer.update(log_this, 1) 
+        if not self.pretrain_mode:
+            acc = accuracy_score(true_labels, predicted_labels)
+            log_this = {'accuracy': acc}
+            self.log_buffer.update(log_this, 1) 
 
-        self.preds = predicted_labels
-        self.labels = true_labels
-        self.preds_raw = pred_raw
+            self.preds = predicted_labels
+            self.labels = true_labels
+            self.preds_raw = pred_raw
         # print('labels', true_labels, 'preds', predicted_labels)
 
         if self.early_stopping and not self.early_stopping_obj.early_stop and self.epoch >= self.es_start_up:
@@ -402,15 +403,16 @@ class Runner(object):
             if self.es_before_step == False and self.early_stopping_obj.early_stop == True:
                 self.early_stopping_epoch = self.epoch - self.es_patience
 
-                self.log_buffer.update({'stop_epoch_val': self.early_stopping_epoch}, 1)
-                print("Updated the buffer with the stop epoch: ", self.early_stopping_epoch)
+                if not self.pretrain_mode:
+                    self.log_buffer.update({'stop_epoch_val': self.early_stopping_epoch}, 1)
+                    print("Updated the buffer with the stop epoch: ", self.early_stopping_epoch)
         
         if not self.early_stopping and self.epoch == self._max_epochs: #dont have early stopping
             torch.save(self.model.state_dict(), self.es_checkpoint)
 
 
         self.call_hook('after_val_epoch')
-
+        print("done val epoch")
         return true_labels, predicted_labels
 
 
@@ -608,7 +610,7 @@ class Runner(object):
 
                     # We have successfully finished this participant
                     not_done = False
-                    
+
             except Exception as e: 
                 not_done = True
                 logging.exception("loss calc message=================================================")
