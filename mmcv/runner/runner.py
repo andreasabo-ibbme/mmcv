@@ -20,6 +20,10 @@ from .pytorchtools import EarlyStopping
 import os
 # from ...early_stopping_pytorch/pytorchtools import EarlyStopping
 
+def weight_reset(m):
+    if isinstance(m, nn.Conv1d) or isinstance(m, nn.Conv2d) or isinstance(m, nn.Conv3d) or isinstance(m, nn.Linear):
+        m.reset_parameters()
+
 
 class Runner(object):
     """A training helper for PyTorch.
@@ -589,6 +593,10 @@ class Runner(object):
                     not_done = False
             except:
                 not_done = True
+
+                # Reset the model parameters
+                print("going to retrain again, resetting parameters...")
+                self.model.apply(weight_reset)
 
 
             # If we stopped early, evaluate the performance of the saved model on all datasets
