@@ -314,7 +314,8 @@ class Runner(object):
 
             # If we get a nan in the loss, just ignore it
             print("overall loss is: ", overall_loss)
-            if not np.isnan(overall_loss):
+            overall_loss_np = overall_loss.cpu().data.numpy()
+            if not np.isnan(overall_loss_np):
                 batch_loss += overall_loss*len(raw['true'])
             else:
                 pass
@@ -330,7 +331,7 @@ class Runner(object):
 
                                   
             self.outputs = outputs
-            if not np.isnan(overall_loss):
+            if not np.isnan(overall_loss_np):
                 self.call_hook('after_train_iter') # the backward step is called here
             self._iter += 1
         self._epoch += 1
@@ -376,7 +377,10 @@ class Runner(object):
                 true_labels.extend(raw['true'])
                 predicted_labels.extend(raw['pred'])
                 pred_raw.extend(raw['raw_preds'])
-                if not np.isnan(overall_loss):
+
+                overall_loss_np = overall_loss.cpu().data.numpy()
+
+                if not np.isnan(overall_loss_np):
                     batch_loss += overall_loss*len(raw['true'])
 
             if not isinstance(outputs, dict):
@@ -444,6 +448,7 @@ class Runner(object):
                 true_labels.extend(raw['true'])
                 predicted_labels.extend(raw['pred'])
                 pred_raw.extend(raw['raw_preds'])
+                overall_loss_np = overall_loss.cpu().data.numpy()
                 if not np.isnan(overall_loss):
                     batch_loss += overall_loss*len(raw['true'])
 
