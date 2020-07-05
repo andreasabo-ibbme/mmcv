@@ -314,7 +314,11 @@ class Runner(object):
 
             # If we get a nan in the loss, just ignore it
             # print("overall loss is: ", overall_loss)
-            overall_loss_np = overall_loss.cpu().data.numpy()
+            try:
+                overall_loss_np = overall_loss.cpu().data.numpy()
+            except: 
+                overall_loss_np = overall_loss
+                print("our loss is: ", overall_loss_np)
             if not np.isnan(overall_loss_np):
                 batch_loss += overall_loss*len(raw['true'])
             else:
@@ -377,8 +381,12 @@ class Runner(object):
                 true_labels.extend(raw['true'])
                 predicted_labels.extend(raw['pred'])
                 pred_raw.extend(raw['raw_preds'])
-
-                overall_loss_np = overall_loss.cpu().data.numpy()
+                
+                try:
+                    overall_loss_np = overall_loss.cpu().data.numpy()
+                except: 
+                    overall_loss_np = overall_loss
+                    print("our loss is: ", overall_loss_np)
 
                 if not np.isnan(overall_loss_np):
                     batch_loss += overall_loss*len(raw['true'])
@@ -448,7 +456,12 @@ class Runner(object):
                 true_labels.extend(raw['true'])
                 predicted_labels.extend(raw['pred'])
                 pred_raw.extend(raw['raw_preds'])
-                overall_loss_np = overall_loss.cpu().data.numpy()
+                try:
+                    overall_loss_np = overall_loss.cpu().data.numpy()
+                except: 
+                    overall_loss_np = overall_loss
+                    print("our loss is: ", overall_loss_np)
+
                 if not np.isnan(overall_loss_np):
                     batch_loss += overall_loss*len(raw['true'])
 
