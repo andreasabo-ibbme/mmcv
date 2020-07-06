@@ -677,7 +677,7 @@ class Runner(object):
         time.sleep(10)  # wait for some hooks like loggers to finish
         self.call_hook('after_run')
 
-
+        return self.model
 
 
 
