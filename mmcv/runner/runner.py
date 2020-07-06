@@ -56,7 +56,8 @@ class Runner(object):
                  early_stopping=False,
                  force_run_all_epochs=True, 
                  es_patience=10, 
-                 es_start_up=50):
+                 es_start_up=50, 
+                 freeze_encoder=False):
         assert callable(batch_processor)
         self.model = model
         if optimizer is not None:
@@ -67,7 +68,7 @@ class Runner(object):
         self.things_to_log = things_to_log
         self.early_stopping = early_stopping
         self.force_run_all_epochs = force_run_all_epochs
-
+        self.freeze_encoder = freeze_encoder
 
         self.es_patience = es_patience
         self.es_start_up = es_start_up
@@ -564,6 +565,11 @@ class Runner(object):
 
         kwargs = {k: v for k, v in kwargs.items() if k != 'supcon_pretraining'}
 
+        # Freeze the encoder if needed
+        if self.freeze_encoder:
+            for param in self.model.module.encoder.parameters():
+                param.requires_grad = False
+
         while not_done:
             print('===================starting training...=========================')
             # Reset the epoch counters
@@ -580,7 +586,10 @@ class Runner(object):
                 assert mmcv.is_list_of(workflow, tuple)
                 assert len(data_loaders) == len(workflow)
 
-                es_checkpoint = self.work_dir + '/checkpoint.pt'
+                if self.pretrain_mode:
+                    es_checkpoint = self.work_dir + '/pretrain_checkpoint.pt'
+                else:
+                    es_checkpoint = self.work_dir + '/checkpoint.pt'
                 self.es_checkpoint = es_checkpoint
                 if self.early_stopping:
                     self.early_stopping_obj = EarlyStopping(patience=self.es_patience, verbose=True, path=es_checkpoint)
@@ -649,7 +658,7 @@ class Runner(object):
 
             except Exception as e: 
                 not_done = True
-                logging.exception("loss calc message=================================================")
+                logging.exception("Error message =================================================")
 
                 # Reset the model parameters
                 print("======================================going to retrain again, resetting parameters...")
