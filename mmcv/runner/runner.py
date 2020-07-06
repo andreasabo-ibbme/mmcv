@@ -318,7 +318,7 @@ class Runner(object):
                 overall_loss_np = overall_loss.cpu().data.numpy()
             except: 
                 overall_loss_np = overall_loss
-                print("our loss is: ", overall_loss_np)
+                # print("our loss is: ", overall_loss_np)
             if not np.isnan(overall_loss_np):
                 batch_loss += overall_loss*len(raw['true'])
             else:
@@ -361,7 +361,7 @@ class Runner(object):
             log_this = {'pretrain_loss': batch_loss}
             self.log_buffer.update(log_this, 1) 
             self.call_hook('buffer_log_only')
-        print("end training epoch")
+        # print("end training epoch")
         return true_labels, predicted_labels
 
     def val(self, data_loader, **kwargs):
@@ -386,7 +386,7 @@ class Runner(object):
                     overall_loss_np = overall_loss.cpu().data.numpy()
                 except: 
                     overall_loss_np = overall_loss
-                    print("our loss is: ", overall_loss_np)
+                    # print("our loss is: ", overall_loss_np)
 
                 if not np.isnan(overall_loss_np):
                     batch_loss += overall_loss*len(raw['true'])
@@ -435,7 +435,7 @@ class Runner(object):
         else:
             self.call_hook('after_val_epoch')
 
-        print("done val epoch")
+        # print("done val epoch")
         return true_labels, predicted_labels
 
 
@@ -460,7 +460,7 @@ class Runner(object):
                     overall_loss_np = overall_loss.cpu().data.numpy()
                 except: 
                     overall_loss_np = overall_loss
-                    print("our loss is: ", overall_loss_np)
+                    # print("our loss is: ", overall_loss_np)
 
                 if not np.isnan(overall_loss_np):
                     batch_loss += overall_loss*len(raw['true'])
