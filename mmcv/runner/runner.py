@@ -639,7 +639,7 @@ class Runner(object):
                         df_all.to_csv(self.work_dir + "/results_df.csv")
 
                     if self.early_stopping:
-                        print('checking early stopping:', self.early_stopping_obj.early_stop)
+                        print('checking early stopping:', self.early_stopping_obj.early_stop, self.force_run_all_epochs)
                         if not self.force_run_all_epochs and self.early_stopping_obj.early_stop:
                             print('should STOP now')
                             break
