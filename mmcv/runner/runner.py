@@ -58,7 +58,7 @@ class Runner(object):
                  es_patience=10, 
                  es_start_up=50, 
                  freeze_encoder=False, 
-                 dont_reinit=False):
+                 finetuning=False):
         assert callable(batch_processor)
         self.model = model
         if optimizer is not None:
@@ -74,10 +74,7 @@ class Runner(object):
         self.es_patience = es_patience
         self.es_start_up = es_start_up
 
-        if dont_reinit:
-            self.things_to_log['reinit'] = False
-        else:
-            self.things_to_log['reinit'] = True
+        self.finetuning = finetuning
 
 
         # create work_dir
