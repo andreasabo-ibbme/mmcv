@@ -56,7 +56,11 @@ class WandbLoggerHook(LoggerHook):
         elif self.initial_config:
             print('initializing with: ', self.initial_config)
             print('our group is: ', self.group)
-            self.wandb.init(project=self.initial_config['wandb_project'], config=self.initial_config, group=self.initial_config['wandb_group'], name="AMB"+str(self.initial_config['test_AMBID']), reinit=True)
+            try:
+                self.wandb.init(project=self.initial_config['wandb_project'], config=self.initial_config, group=self.initial_config['wandb_group'], name="AMB"+str(self.initial_config['test_AMBID']), reinit=self.initial_config['reinit'])
+            except:
+                self.wandb.init(project=self.initial_config['wandb_project'], config=self.initial_config, group=self.initial_config['wandb_group'], name="AMB"+str(self.initial_config['test_AMBID']), reinit=True)
+ 
         else:
             self.wandb.init()
         

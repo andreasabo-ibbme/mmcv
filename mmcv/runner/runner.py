@@ -57,7 +57,8 @@ class Runner(object):
                  force_run_all_epochs=True, 
                  es_patience=10, 
                  es_start_up=50, 
-                 freeze_encoder=False):
+                 freeze_encoder=False, 
+                 dont_reinit=False):
         assert callable(batch_processor)
         self.model = model
         if optimizer is not None:
@@ -72,6 +73,12 @@ class Runner(object):
 
         self.es_patience = es_patience
         self.es_start_up = es_start_up
+
+        if dont_reinit:
+            self.things_to_log['reinit'] = False
+        else:
+            self.things_to_log['reinit'] = True
+
 
         # create work_dir
         if mmcv.is_str(work_dir):
