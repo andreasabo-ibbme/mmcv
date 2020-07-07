@@ -676,10 +676,12 @@ class Runner(object):
 
         # If we stopped early, evaluate the performance of the saved model on all datasets
         if self.early_stopping:
-            self.log_buffer.update({'early_stop_epoch': self.early_stopping_epoch}, 1) 
+            try:
+                self.log_buffer.update({'early_stop_epoch': self.early_stopping_epoch}, 1) 
 
-            print('stopped at epoch: ', self.early_stopping_epoch)
-
+                print('stopped at epoch: ', self.early_stopping_epoch)
+            except:
+                print("didn't meet early stopping criterion so we ran for all epochs")
             print("*****************************now doing eval: ")
             print("workflow", workflow)
             print("data_loaders", data_loaders)
