@@ -314,7 +314,7 @@ class Runner(object):
         for i, data_batch in enumerate(data_loader):
             self._inner_iter = i
             self.call_hook('before_train_iter')
-            print('batch size: ', data_batch.size())
+            print('batch size: ',data_batch)
             outputs, raw, overall_loss = self.batch_processor(
                 self.model, data_batch, train_mode=True, **kwargs)
 
