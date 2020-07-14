@@ -152,26 +152,58 @@ class LoggerHook(Hook):
                 title = 'Confusion matrix, without normalization'
 
         cm = confusion_matrix(y_true, y_pred)
-        # if cm.shape[1] is not len(classes):
-        # print("our CM is not the right size!!")
+        if cm.shape[1] is not len(classes):
+            # print("our CM is not the right size!!")
 
-        all_labels = y_true + y_pred
-        y_all_unique = list(set(all_labels))
-        y_all_unique.sort()
+            all_labels = y_true + y_pred
+            y_all_unique = list(set(all_labels))
+            y_all_unique.sort()
 
-        max_cm_size = max(len(classes), y_all_unique[-1])
 
-        cm_new = np.zeros((max_cm_size, max_cm_size), dtype=np.int64)
-        for i in range(len(y_all_unique)):
-            for j in range(len(y_all_unique)):
-                i_global = y_all_unique[i]
-                j_global = y_all_unique[j]
-                cm_new[i_global, j_global] = cm[i,j]
-                
+            try:
+                max_cm_size = len(classes)
+                print('max_cm_size: ', max_cm_size)
+                cm_new = np.zeros((max_cm_size, max_cm_size), dtype=np.int64)
+                for i in range(len(y_all_unique)):
+                    for j in range(len(y_all_unique)):
+                        i_global = y_all_unique[i]
+                        j_global = y_all_unique[j]
+                        
+                        cm_new[i_global, j_global] = cm[i,j]
+            except:
+                print('CM failed++++++++++++++++++++++++++++++++++++++')
+                print('cm_new', cm_new)
+                print('cm', cm)
+                print('classes', classes)
+                print('y_all_unique', y_all_unique)
+                print('y_true', list(set(y_true)))
+                print('y_pred', list(set(y_pred)))
+                print('max_cm_size: ', max_cm_size)
+                max_cm_size = max([len(classes), y_all_unique[-1]])
 
-        cm = cm_new
+                cm_new = np.zeros((max_cm_size, max_cm_size), dtype=np.int64)
+                for i in range(len(y_all_unique)):
+                    for j in range(len(y_all_unique)):
+                        i_global = y_all_unique[i]
+                        j_global = y_all_unique[j]
+                        try:
+                            cm_new[i_global, j_global] = cm[i,j]
+                        except:
+                            print('CM failed second time++++++++++++++++++++++++++++++++++++++')
+                            print('cm_new', cm_new)
+                            print('cm', cm)
+                            print('classes', classes)
+                            print('y_all_unique', y_all_unique)
+                            print('y_true', list(set(y_true)))
+                            print('y_pred', list(set(y_pred)))
+                            print('max_cm_size: ', max_cm_size)
 
-        classes = [i for i in range(max_cm_size)]
+
+
+            cm = cm_new
+
+            classes = [i for i in range(max_cm_size)]
+
         # print(cm)
         # classes = classes[unique_labels(y_true, y_pred).astype(int)]
         if normalize:
@@ -180,7 +212,7 @@ class LoggerHook(Hook):
             # print("Normalized confusion matrix")
         # else:
             # print('Confusion matrix, without normalization')
-# 
+    # 
         #print(cm)
 
         fig, ax = plt.subplots(figsize=(8, 6))
@@ -213,5 +245,4 @@ class LoggerHook(Hook):
                         color="white" if cm[i, j] > thresh else "black")
         fig.tight_layout()
         return fig
-
-        
+            
