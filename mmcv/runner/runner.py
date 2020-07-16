@@ -3,8 +3,12 @@ import logging
 import os.path as osp
 import time
 
+import math
+from torch import nn
+
 import torch
 import csv
+import matplotlib.pyplot as plt
 
 import mmcv
 from .checkpoint import load_checkpoint, save_checkpoint
@@ -58,7 +62,10 @@ class Runner(object):
                  es_patience=10, 
                  es_start_up=50, 
                  freeze_encoder=False, 
-                 finetuning=False):
+                 finetuning=False,
+                 visualize_preds={'visualize': False}, 
+                 num_class=4):
+
         assert callable(batch_processor)
         self.model = model
         if optimizer is not None:
@@ -75,6 +82,8 @@ class Runner(object):
         self.es_start_up = es_start_up
 
         self.finetuning = finetuning
+        self.visualize_preds = visualize_preds
+        self.num_class = num_class
 
 
         # create work_dir
@@ -302,6 +311,140 @@ class Runner(object):
         if create_symlink:
             mmcv.symlink(filename, osp.join(out_dir, 'latest.pth'))
 
+
+
+    def visualize_preds_func(self, outputs, data_batch, force_vis=False):
+        if not self.visualize_preds['visualize']:
+            return
+
+        try: 
+            if force_vis or self.visualize_preds['epochs_to_visualize'] == 'all' or \
+            (self.epoch in self.visualize_preds['epochs_to_visualize'] ) or \
+            ('first' in self.visualize_preds['epochs_to_visualize'] and self.epoch == 0 and self.mode == 'train') or \
+            ('first' in self.visualize_preds['epochs_to_visualize'] and self.epoch == 1 and self.mode != 'train'):
+                outputs = outputs['predicted_joint_positions'].cpu().data.numpy()
+                # Save the results
+                print('SAVING PREDS: epoch', str(self.epoch), " mode: ", self.mode)
+                try:
+                    data, data_flipped, label, name= data_batch
+                except:
+                    data, data_flipped, label, name, true_future_ts = data_batch
+
+                # Reshape the data so that both the data and labels/preds are in the order:
+                # [bs, coords, num_joints, num_ts]
+                data = data.permute(0, 1, 3, 2, 4).contiguous()
+                data = data.squeeze()
+
+
+                neighbor_1base = [[12, 10], [11, 9], [10, 8], [9, 7], [8, 7],
+                                    [7, 1], [8, 2], [2, 0], [1, 3], [2, 4], 
+                                    [4, 6], [0, 2], [0, 1]]
+
+                order_of_keypoints = ['Nose', 
+                    'LShoulder', 'RShoulder',
+                    'LElbow', 'RElbow', 
+                    'LWrist', 'RWrist', 
+                    'LHip', 'RHip',
+                    'LKnee', 'RKnee',
+                    'LAnkle', 'RAnkle',
+                ]
+
+                time_axis_scale = 15
+                num_frames_btwn_plots = 30
+
+                data_size = data.shape
+                data_length = data_size[3]
+                # Plot the first part of the walk
+                data = data.numpy()
+                label = label.numpy()
+
+                for walk_num in range(data_size[0]):
+                    plt.close('all')
+                    # New figure for each participant
+                    fig = plt.figure(figsize=(40,20))
+                    ax = fig.gca(projection='3d')
+
+
+                    for ts in range(0, data_length, num_frames_btwn_plots):
+                        time_axis = ts/time_axis_scale
+
+                        xcords = data[walk_num, 0, :, ts].squeeze()
+
+                        ycords = data[walk_num, 1, :, ts].squeeze()
+
+
+                        for i in range(len(neighbor_1base)):
+                            xs = xcords[neighbor_1base[i]]
+                            ys = ycords[neighbor_1base[i]]
+                            ax.plot(xs, ys, zs=time_axis, zdir='y', color='k')
+
+
+
+
+                    # Plot the true and predicted points at future timesteps
+                    future_ts = [arr[0] for arr in true_future_ts['pred_ts']]
+                    predicted_joints = [arr[0] for arr in true_future_ts['joints']]
+
+                    data_true = true_future_ts['true_skel']
+                    # data_true = data_true.squeeze()
+                    data_true = data_true.numpy()
+                    for t in range(len(future_ts)):
+                        local_ts = future_ts[t]
+                        ts = data_length + local_ts
+
+                        time_axis = ts/time_axis_scale
+
+                        # Plot the baseline we should be predicting
+                        xcords = data_true[walk_num, 0, :, t].squeeze()
+                        ycords = data_true[walk_num, 1, :, t].squeeze()
+
+                        for i in range(len(neighbor_1base)):
+                            xs = xcords[neighbor_1base[i]]
+                            ys = ycords[neighbor_1base[i]]
+                            ax.plot(xs, ys, zs=time_axis, zdir='y', color='g')
+
+                        # Plot the predictions
+                        for j in range(len(predicted_joints)):
+                            ax.scatter(outputs[walk_num, 0, j, t], outputs[walk_num, 1, j, t], zs=time_axis, zdir='y', s=100, label=order_of_keypoints[predicted_joints[j]]+ '_' + str(local_ts.data.numpy()))
+
+
+                    x_lim_min = min(np.amin(data[walk_num, 0, :, :]), np.amin(data_true[walk_num, 0, :, :]), np.amin(outputs[walk_num, 0, :, :]))
+                    x_lim_max = max(np.amax(data[walk_num, 0, :, :]), np.amax(data_true[walk_num, 0, :, :]), np.max(outputs[walk_num, 0, :, :]))
+                    y_lim_min = min(np.amin(data[walk_num, 1, :, :]), np.amin(data_true[walk_num, 1, :, :]), np.amin(outputs[walk_num, 1, :, :]))
+                    y_lim_max = max(np.amax(data[walk_num, 1, :, :]), np.amax(data_true[walk_num, 1, :, :]), np.amax(outputs[walk_num, 1, :, :]))
+
+                    mse = np.sum((outputs[walk_num, :, :, :] - label[walk_num, :, :, :])**2)
+
+                    ax.legend(fontsize='xx-large')
+                    ax.set_xlim(x_lim_min, x_lim_max)
+
+                    ax.set_ylim(0, (data_length + max(future_ts))/time_axis_scale + 1)
+                    ax.set_zlim(y_lim_min, y_lim_max)
+                    plt.gca().invert_zaxis()
+                    ax.set_ylim(ax.get_ylim()[::-1])
+                    ax.set_title('MSE of all predictions: ' + str(mse))
+
+                    ax.set_xlabel('')
+                    ax.set_ylabel('')
+                    ax.set_zlabel('')
+
+                    output_folder = os.path.join(self.visualize_preds['output_dir'], self.mode)  
+                    mmcv.mkdir_or_exist(output_folder)
+
+                    fig_name, _ = os.path.splitext(name[walk_num])
+                    _, name_clean = os.path.split(fig_name)
+                    fig_save = os.path.join(output_folder, name_clean + '_epoch' + str(self.epoch) + '_.png')
+                    fig.savefig(fig_save)
+
+
+            else: 
+                return
+        
+        except:
+            print("failed to save predictions...")
+            logging.exception("Error message =================================================")
+
+
     def train(self, data_loader, **kwargs):
         self.model.train()
         self.mode = 'train'
@@ -315,7 +458,11 @@ class Runner(object):
             self._inner_iter = i
             self.call_hook('before_train_iter')
             outputs, raw, overall_loss = self.batch_processor(
-                self.model, data_batch, train_mode=True, **kwargs)
+                self.model, data_batch, train_mode=True, num_class=self.num_class, **kwargs)
+
+            self.visualize_preds_func(outputs, data_batch)
+
+
 
             # If we get a nan in the loss, just ignore it
             # print("overall loss is: ", overall_loss)
@@ -324,6 +471,9 @@ class Runner(object):
             except: 
                 overall_loss_np = overall_loss
                 # print("our loss is: ", overall_loss_np)
+            self.visualize_preds_func(outputs, data_batch)
+
+
             if not np.isnan(overall_loss_np):
                 batch_loss += overall_loss*len(raw['true'])
             else:
@@ -382,7 +532,7 @@ class Runner(object):
             self.call_hook('before_val_iter')
             with torch.no_grad():
                 outputs, raw, overall_loss = self.batch_processor(
-                    self.model, data_batch, train_mode=False, **kwargs)
+                    self.model, data_batch, train_mode=False, num_class=self.num_class, **kwargs)
                 true_labels.extend(raw['true'])
                 predicted_labels.extend(raw['pred'])
                 pred_raw.extend(raw['raw_preds'])
@@ -392,6 +542,7 @@ class Runner(object):
                 except: 
                     overall_loss_np = overall_loss
                     # print("our loss is: ", overall_loss_np)
+                self.visualize_preds_func(outputs, data_batch)
 
                 if not np.isnan(overall_loss_np):
                     batch_loss += overall_loss*len(raw['true'])
@@ -457,7 +608,7 @@ class Runner(object):
             self.call_hook('before_val_iter')
             with torch.no_grad():
                 outputs, raw, overall_loss = self.batch_processor(
-                    self.model, data_batch, train_mode=False, **kwargs)
+                    self.model, data_batch, train_mode=False, num_class=self.num_class, **kwargs)
                 true_labels.extend(raw['true'])
                 predicted_labels.extend(raw['pred'])
                 pred_raw.extend(raw['raw_preds'])
@@ -466,6 +617,7 @@ class Runner(object):
                 except: 
                     overall_loss_np = overall_loss
                     # print("our loss is: ", overall_loss_np)
+                self.visualize_preds_func(outputs, data_batch)
 
                 if not np.isnan(overall_loss_np):
                     batch_loss += overall_loss*len(raw['true'])
@@ -540,11 +692,12 @@ class Runner(object):
             self._inner_iter = i
             with torch.no_grad():
                 outputs, raw, overall_loss = self.batch_processor(
-                    self.model, data_batch, train_mode=False, **kwargs)
+                    self.model, data_batch, train_mode=False, num_class=self.num_class, **kwargs)
                 true_labels.extend(raw['true'])
                 predicted_labels.extend(raw['pred'])
                 pred_raw.extend(raw['raw_preds'])
                 batch_loss += overall_loss*len(raw['true'])
+                self.visualize_preds_func(outputs, data_batch, True)
 
 
         return true_labels, predicted_labels, pred_raw
@@ -688,6 +841,8 @@ class Runner(object):
 
             if not self.pretrain_mode:
                 self.early_stop_eval(es_checkpoint, workflow, data_loaders, **kwargs)
+            else:
+                self.early_stop_eval_pretrain(es_checkpoint, workflow, data_loaders, **kwargs)
 
 
 
@@ -695,6 +850,17 @@ class Runner(object):
         self.call_hook('after_run')
 
         return self.model
+
+    def early_stop_eval_pretrain(self, es_checkpoint, workflow, data_loaders, **kwargs):
+        print('early_stop_eval_pretrain============================')
+        self.model.load_state_dict(torch.load(es_checkpoint))
+        self.model.eval()
+
+        for i, flow in enumerate(workflow):
+            self.mode, _ = flow
+
+            # mode = "train", "val", "test"
+            true_labels, predicted_labels, raw_preds = self.basic_no_log_eval(data_loaders[i], **kwargs)
 
 
 
