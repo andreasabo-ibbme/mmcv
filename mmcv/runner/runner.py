@@ -541,11 +541,10 @@ class Runner(object):
                     overall_loss_np = overall_loss.cpu().data.numpy()
                 except: 
                     overall_loss_np = overall_loss
-                    # print("our loss is: ", overall_loss_np)
                 self.visualize_preds_func(outputs, data_batch)
 
                 if not np.isnan(overall_loss_np):
-                    batch_loss += overall_loss*len(raw['true'])
+                    batch_loss += overall_loss_np*len(raw['true'])
 
             if not isinstance(outputs, dict):
                 raise TypeError('batch_processor() must return a dict')

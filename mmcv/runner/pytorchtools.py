@@ -25,8 +25,12 @@ class EarlyStopping:
         self.path = path
 
     def __call__(self, val_loss, model):
-
+        try:
+            val_loss = val_loss[0]
+        except:
+            val_loss = val_loss
         score = val_loss
+
 
         if self.best_score is None:
             self.best_score = score

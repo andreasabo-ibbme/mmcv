@@ -143,77 +143,23 @@ class LoggerHook(Hook):
         plt.ylabel("Regression Value")
         return fig
 
-    def plot_confusion_matrix(self, y_true, y_pred, classes,normalize=False,title=None,cmap=plt.cm.Blues):
 
+    def plot_confusion_matrix(self, y_true, y_pred, classes,normalize=False,title=None,cmap=plt.cm.Blues):
         if not title:
             if normalize:
                 title = 'Normalized confusion matrix'
             else:
                 title = 'Confusion matrix, without normalization'
 
-        cm = confusion_matrix(y_true, y_pred)
-        if cm.shape[1] is not len(classes):
-            # print("our CM is not the right size!!")
 
-            all_labels = y_true + y_pred
-            y_all_unique = list(set(all_labels))
-            y_all_unique.sort()
+        # How many classes are there? Go from 0 -> max in preds or labels
+        max_label = max(max(y_true), max(y_pred)) + 1
+        class_names_int = [int(i) for i in range(max_label)]
+        classes = [str(i) for i in range(max_label)]
+        cm = confusion_matrix(y_true, y_pred, labels=class_names_int)
 
-
-            try:
-                max_cm_size = len(classes)
-                print('max_cm_size: ', max_cm_size)
-                cm_new = np.zeros((max_cm_size, max_cm_size), dtype=np.int64)
-                for i in range(len(y_all_unique)):
-                    for j in range(len(y_all_unique)):
-                        i_global = y_all_unique[i]
-                        j_global = y_all_unique[j]
-                        
-                        cm_new[i_global, j_global] = cm[i,j]
-            except:
-                print('CM failed++++++++++++++++++++++++++++++++++++++')
-                print('cm_new', cm_new)
-                print('cm', cm)
-                print('classes', classes)
-                print('y_all_unique', y_all_unique)
-                print('y_true', list(set(y_true)))
-                print('y_pred', list(set(y_pred)))
-                print('max_cm_size: ', max_cm_size)
-                max_cm_size = max([len(classes), y_all_unique[-1]])
-
-                cm_new = np.zeros((max_cm_size, max_cm_size), dtype=np.int64)
-                for i in range(len(y_all_unique)):
-                    for j in range(len(y_all_unique)):
-                        i_global = y_all_unique[i]
-                        j_global = y_all_unique[j]
-                        try:
-                            cm_new[i_global, j_global] = cm[i,j]
-                        except:
-                            print('CM failed second time++++++++++++++++++++++++++++++++++++++')
-                            print('cm_new', cm_new)
-                            print('cm', cm)
-                            print('classes', classes)
-                            print('y_all_unique', y_all_unique)
-                            print('y_true', list(set(y_true)))
-                            print('y_pred', list(set(y_pred)))
-                            print('max_cm_size: ', max_cm_size)
-
-
-
-            cm = cm_new
-
-            classes = [i for i in range(max_cm_size)]
-
-        # print(cm)
-        # classes = classes[unique_labels(y_true, y_pred).astype(int)]
         if normalize:
             cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-
-            # print("Normalized confusion matrix")
-        # else:
-            # print('Confusion matrix, without normalization')
-    # 
-        #print(cm)
 
         fig, ax = plt.subplots(figsize=(8, 6))
         im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
@@ -245,4 +191,108 @@ class LoggerHook(Hook):
                         color="white" if cm[i, j] > thresh else "black")
         fig.tight_layout()
         return fig
+
+
+    # def plot_confusion_matrix(self, y_true, y_pred, classes,normalize=False,title=None,cmap=plt.cm.Blues):
+
+    #     if not title:
+    #         if normalize:
+    #             title = 'Normalized confusion matrix'
+    #         else:
+    #             title = 'Confusion matrix, without normalization'
+
+    #     cm = confusion_matrix(y_true, y_pred)
+    #     if cm.shape[1] is not len(classes):
+    #         # print("our CM is not the right size!!")
+
+    #         all_labels = y_true + y_pred
+    #         y_all_unique = list(set(all_labels))
+    #         y_all_unique.sort()
+
+
+    #         try:
+    #             max_cm_size = len(classes)
+    #             print('max_cm_size: ', max_cm_size)
+    #             cm_new = np.zeros((max_cm_size, max_cm_size), dtype=np.int64)
+    #             for i in range(len(y_all_unique)):
+    #                 for j in range(len(y_all_unique)):
+    #                     i_global = y_all_unique[i]
+    #                     j_global = y_all_unique[j]
+                        
+    #                     cm_new[i_global, j_global] = cm[i,j]
+    #         except:
+    #             print('CM failed++++++++++++++++++++++++++++++++++++++')
+    #             print('cm_new', cm_new)
+    #             print('cm', cm)
+    #             print('classes', classes)
+    #             print('y_all_unique', y_all_unique)
+    #             print('y_true', list(set(y_true)))
+    #             print('y_pred', list(set(y_pred)))
+    #             print('max_cm_size: ', max_cm_size)
+    #             max_cm_size = max([len(classes), y_all_unique[-1]])
+
+    #             cm_new = np.zeros((max_cm_size, max_cm_size), dtype=np.int64)
+    #             for i in range(len(y_all_unique)):
+    #                 for j in range(len(y_all_unique)):
+    #                     i_global = y_all_unique[i]
+    #                     j_global = y_all_unique[j]
+    #                     try:
+    #                         cm_new[i_global, j_global] = cm[i,j]
+    #                     except:
+    #                         print('CM failed second time++++++++++++++++++++++++++++++++++++++')
+    #                         print('cm_new', cm_new)
+    #                         print('cm', cm)
+    #                         print('classes', classes)
+    #                         print('y_all_unique', y_all_unique)
+    #                         print('y_true', list(set(y_true)))
+    #                         print('y_pred', list(set(y_pred)))
+    #                         print('max_cm_size: ', max_cm_size)
+
+
+
+    #         cm = cm_new
+
+    #         classes = [i for i in range(max_cm_size)]
+
+    #     # print(cm)
+    #     # classes = classes[unique_labels(y_true, y_pred).astype(int)]
+    #     if normalize:
+    #         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+
+    #         # print("Normalized confusion matrix")
+    #     # else:
+    #         # print('Confusion matrix, without normalization')
+    # # 
+    #     #print(cm)
+
+    #     fig, ax = plt.subplots(figsize=(8, 6))
+    #     im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
+    #     ax.figure.colorbar(im, ax=ax)
+    #     # We want to show all ticks...
+    #     ax.set(xticks=np.arange( cm.shape[1]),
+    #         yticks=np.arange( cm.shape[0]),
+    #         # ... and label them with the respective list entries
+    #         xticklabels=classes, yticklabels=classes,
+    #         title=title,
+    #         ylabel='True label',
+    #         xlabel='Predicted label')
+        
+    #     ax.set_xlim(-0.5, cm.shape[1]-0.5)
+    #     ax.set_ylim(cm.shape[0]-0.5, -0.5)
+
+    #     # Rotate the tick labels and set their alignment.
+    #     # print(ax.get_xticklabels())
+    #     plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+    #             rotation_mode="anchor")
+
+    #     # Loop over data dimensions and create text annotations.
+    #     fmt = '.3f' if normalize else 'd'
+    #     thresh = cm.max() / 2.
+    #     for i in range(cm.shape[0]):
+    #         for j in range(cm.shape[1]):
+    #             ax.text(j, i, format(cm[i, j], fmt),
+    #                     ha="center", va="center",
+    #                     color="white" if cm[i, j] > thresh else "black")
+    #     fig.tight_layout()
+    #     return fig
             
