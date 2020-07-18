@@ -22,6 +22,7 @@ from sklearn.metrics import accuracy_score
 import numpy as np
 from .pytorchtools import EarlyStopping
 import os
+import wandb
 # from ...early_stopping_pytorch/pytorchtools import EarlyStopping
 
 def weight_reset(m):
@@ -64,7 +65,8 @@ class Runner(object):
                  freeze_encoder=False, 
                  finetuning=False,
                  visualize_preds={'visualize': False}, 
-                 num_class=4):
+                 num_class=4,
+                 ):
 
         assert callable(batch_processor)
         self.model = model
@@ -84,7 +86,6 @@ class Runner(object):
         self.finetuning = finetuning
         self.visualize_preds = visualize_preds
         self.num_class = num_class
-
 
         # create work_dir
         if mmcv.is_str(work_dir):
@@ -848,7 +849,7 @@ class Runner(object):
         time.sleep(10)  # wait for some hooks like loggers to finish
         self.call_hook('after_run')
 
-        return self.model
+        return self.model, self.early_stopping_epoch
 
     def early_stop_eval_pretrain(self, es_checkpoint, workflow, data_loaders, **kwargs):
         print('early_stop_eval_pretrain============================')
@@ -876,7 +877,8 @@ class Runner(object):
 
 
             final_results_base, amb = os.path.split(self.work_dir)
-            final_results_path = os.path.join(final_results_base, 'all_eval', self.things_to_log['wandb_group'])
+            final_results_path = os.path.join(final_results_base, 'all_final_eval', self.things_to_log['wandb_group'])
+
             if mode == 'test':
                 final_results_file = os.path.join(final_results_path,'test.csv')
             if mode == 'val':
@@ -898,7 +900,7 @@ class Runner(object):
                 writer = csv.writer(f, delimiter=',') 
                 for num in range(len(true_labels)):
                     writer.writerow([amb, true_labels[num], predicted_labels[num], raw_preds[num]])
-
+                    
 
 
     def register_lr_hook(self, lr_config):
