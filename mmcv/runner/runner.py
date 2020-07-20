@@ -2,6 +2,7 @@
 import logging
 import os.path as osp
 import time
+import shutil
 
 import math
 from torch import nn
@@ -825,6 +826,17 @@ class Runner(object):
                     print('successfully reset weights')
                 except Exception as e: 
                     print("This is the error we got _ 2:", e)
+
+                # Need to delete the wandb and work_dir folder to avoid filling up the cluster with files
+                # try:
+                #     shutil.rmtree(wandb.run.dir)
+                # except:
+                #     print('failed to delete the wandb folder')
+
+                try:
+                    shutil.rmtree(self.work_dir)
+                except:
+                    print('failed to delete the self.work_dir folder')
 
 
         # If we stopped early, evaluate the performance of the saved model on all datasets
