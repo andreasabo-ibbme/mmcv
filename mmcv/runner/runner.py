@@ -328,9 +328,9 @@ class Runner(object):
                 # Save the results
                 print('SAVING PREDS: epoch', str(self.epoch), " mode: ", self.mode)
                 try:
-                    data, data_flipped, label, name= data_batch
+                    data, data_flipped, label, name, num_ts= data_batch
                 except:
-                    data, data_flipped, label, name, true_future_ts = data_batch
+                    data, data_flipped, label, name, num_ts, true_future_ts = data_batch
 
                 # Reshape the data so that both the data and labels/preds are in the order:
                 # [bs, coords, num_joints, num_ts]
@@ -687,6 +687,7 @@ class Runner(object):
         self.model.eval()
         self.data_loader = data_loader
         true_labels, predicted_labels, pred_raw = [], [], []
+        names, num_ts = [], []
         batch_loss = 0
 
         for i, data_batch in enumerate(data_loader):
@@ -697,11 +698,13 @@ class Runner(object):
                 true_labels.extend(raw['true'])
                 predicted_labels.extend(raw['pred'])
                 pred_raw.extend(raw['raw_preds'])
+                names.extend(raw['name'])
+                num_ts.extend(raw['num_ts'])
                 batch_loss += overall_loss*len(raw['true'])
                 self.visualize_preds_func(outputs, data_batch, True)
 
 
-        return true_labels, predicted_labels, pred_raw
+        return true_labels, predicted_labels, pred_raw, names, num_ts
 
     def run(self, data_loaders, workflow, max_epochs, **kwargs):
         """Start running.
@@ -872,7 +875,7 @@ class Runner(object):
             self.mode, _ = flow
 
             # mode = "train", "val", "test"
-            true_labels, predicted_labels, raw_preds = self.basic_no_log_eval(data_loaders[i], **kwargs)
+            true_labels, predicted_labels, raw_preds, names, num_ts = self.basic_no_log_eval(data_loaders[i], **kwargs)
 
 
 
@@ -884,7 +887,7 @@ class Runner(object):
             mode, _ = flow
 
             # mode = "train", "val", "test"
-            true_labels, predicted_labels, raw_preds = self.basic_no_log_eval(data_loaders[i], **kwargs)
+            true_labels, predicted_labels, raw_preds, names, num_ts  = self.basic_no_log_eval(data_loaders[i], **kwargs)
             acc = accuracy_score(true_labels, predicted_labels)
 
 
@@ -900,7 +903,7 @@ class Runner(object):
 
             print("saving to ", final_results_file)
             mmcv.mkdir_or_exist(final_results_path)
-            header = ['amb', 'true_score', 'pred_round', 'pred_raw']
+            header = ['amb', 'walk_name', 'num_ts', 'true_score', 'pred_round', 'pred_raw']
 
             if not os.path.exists(final_results_file):
                 with open (final_results_file,'w') as f:                            
@@ -911,7 +914,7 @@ class Runner(object):
             with open (final_results_file,'a') as f:                            
                 writer = csv.writer(f, delimiter=',') 
                 for num in range(len(true_labels)):
-                    writer.writerow([amb, true_labels[num], predicted_labels[num], raw_preds[num]])
+                    writer.writerow([amb, names[num], num_ts[num], true_labels[num], predicted_labels[num], raw_preds[num]])
                     
 
 
