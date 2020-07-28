@@ -882,10 +882,10 @@ class Runner(object):
     def early_stop_eval(self, es_checkpoint, workflow, data_loaders, **kwargs):
         self.model.load_state_dict(torch.load(es_checkpoint))
         self.model.eval()
-
+        print("doing final eval:")
         for i, flow in enumerate(workflow):
             mode, _ = flow
-
+            print('now evaluating: ', mode)
             # mode = "train", "val", "test"
             true_labels, predicted_labels, raw_preds, names, num_ts  = self.basic_no_log_eval(data_loaders[i], **kwargs)
             acc = accuracy_score(true_labels, predicted_labels)
