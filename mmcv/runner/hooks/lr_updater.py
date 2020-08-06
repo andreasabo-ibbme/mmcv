@@ -247,6 +247,7 @@ class CyclicLrUpdaterHook(LrUpdaterHook):
                  target_ratio=(10, 1e-4),
                  cyclic_times=1,
                  step_ratio_up=0.4,
+                 anneal_after_cycle=True,
                  **kwargs):
         if isinstance(target_ratio, float):
             target_ratio = (target_ratio, target_ratio / 1e5)
@@ -261,11 +262,13 @@ class CyclicLrUpdaterHook(LrUpdaterHook):
             '"target_ratio" must be list or tuple of two floats'
         assert 0 <= step_ratio_up < 1.0, \
             '"step_ratio_up" must be in range [0,1)'
-
+        self.anneal_after_cycle = anneal_after_cycle
         self.target_ratio = target_ratio
         self.cyclic_times = cyclic_times
         self.step_ratio_up = step_ratio_up
         self.lr_phases = []  # init lr_phases
+        self.local_base = -1
+
 
         assert not by_epoch, \
             'currently only support "by_epoch" = False'
@@ -285,14 +288,22 @@ class CyclicLrUpdaterHook(LrUpdaterHook):
         ])
 
     def get_lr(self, runner, base_lr):
+        if self.local_base == -1:
+            self.local_base = base_lr
+
         curr_iter = runner.iter
         for (start_iter, end_iter, max_iter_per_phase, start_ratio,
              end_ratio) in self.lr_phases:
             curr_iter %= max_iter_per_phase
+            # print("runner.iter: " , runner.iter, "   curr_iter: ", curr_iter, '   base_lr:', base_lr)
+            if self.anneal_after_cycle and curr_iter == 0 and runner.iter != 0:
+                self.local_base = self.local_base / 10
+                print("ANNEALING BASE LR: ", self.local_base , "*" * 50)
+
             if start_iter <= curr_iter < end_iter:
                 progress = curr_iter - start_iter
-                return annealing_cos(base_lr * start_ratio,
-                                     base_lr * end_ratio,
+                return annealing_cos(self.local_base  * start_ratio,
+                                     self.local_base  * end_ratio,
                                      progress / (end_iter - start_iter))
 
 
