@@ -248,6 +248,7 @@ class CyclicLrUpdaterHook(LrUpdaterHook):
                  cyclic_times=1,
                  step_ratio_up=0.4,
                  anneal_after_cycle=True,
+                 anneal_ratio=10,
                  **kwargs):
         if isinstance(target_ratio, float):
             target_ratio = (target_ratio, target_ratio / 1e5)
@@ -268,7 +269,7 @@ class CyclicLrUpdaterHook(LrUpdaterHook):
         self.step_ratio_up = step_ratio_up
         self.lr_phases = []  # init lr_phases
         self.local_base = -1
-
+        self.anneal_ratio = anneal_ratio
 
         assert not by_epoch, \
             'currently only support "by_epoch" = False'
@@ -297,7 +298,7 @@ class CyclicLrUpdaterHook(LrUpdaterHook):
             curr_iter %= max_iter_per_phase
             # print("runner.iter: " , runner.iter, "   curr_iter: ", curr_iter, '   base_lr:', base_lr)
             if self.anneal_after_cycle and curr_iter == 0 and runner.iter != 0:
-                self.local_base = self.local_base / 10
+                self.local_base = self.local_base / self.anneal_ratio 
                 print("ANNEALING BASE LR: ", self.local_base , "*" * 50)
 
             if start_iter <= curr_iter < end_iter:
