@@ -55,10 +55,19 @@ class WandbLoggerHook(LoggerHook):
             self.wandb.init(**self.init_kwargs)
         elif self.initial_config:
             print('initializing with: ', self.initial_config)
+            run_name = "AMB"+str(self.initial_config['test_AMBID'])
+
             if runner.finetuning:
-                self.wandb.init(project=self.initial_config['wandb_project'], config=self.initial_config, group=self.initial_config['wandb_group'], name="AMB"+str(self.initial_config['test_AMBID'])+"_FT", reinit=True)
-            else:
-                self.wandb.init(project=self.initial_config['wandb_project'], config=self.initial_config, group=self.initial_config['wandb_group'], name="AMB"+str(self.initial_config['test_AMBID']), reinit=True)
+                run_name = run_name + "_FT"
+
+            try:
+                if self.initial_config['self_train_iteration_count'] is not None:
+                    run_name = run_name + '_' + str(self.initial_config['self_train_iteration_count'])
+            except: # Don't have the count iteration so dont include it
+                pass
+
+            self.wandb.init(project=self.initial_config['wandb_project'], config=self.initial_config, group=self.initial_config['wandb_group'], name=run_name, reinit=True)
+
 
         else:
             self.wandb.init()
@@ -69,7 +78,7 @@ class WandbLoggerHook(LoggerHook):
     def log(self, runner):
         metrics = {}
         for var, val in runner.log_buffer.output.items():
-            if var in ['time', 'data_time', 'confusion_matrix', 'regression_plot']:
+            if var in ['time', 'data_time', 'confusion_matrix', 'regression_plot', 'confusion_matrix_normed']:
                 continue
             tag = f'{runner.mode}/{var}'
             metrics[tag] = val
@@ -80,7 +89,7 @@ class WandbLoggerHook(LoggerHook):
                 self.wandb.log(metrics, step=runner._epoch)
             print("logging: ", metrics, ", epoch: ", runner._epoch)
 
-            for plot_type in ['confusion_matrix', 'regression_plot']:
+            for plot_type in ['confusion_matrix', 'regression_plot', 'confusion_matrix_normed']:
                 if plot_type in runner.log_buffer.output:
                     self.wandb.log({plot_type + "/" + runner.log_buffer.output[plot_type][1]: [self.wandb.Image(runner.log_buffer.output[plot_type][0])]}, step=runner._epoch)
         except:
