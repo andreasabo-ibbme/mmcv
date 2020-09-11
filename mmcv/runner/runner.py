@@ -496,8 +496,13 @@ class Runner(object):
             true_labels.extend(raw['true'])
             predicted_labels.extend(raw['pred'])
             pred_raw.extend(raw['raw_preds'])
-            raw_labels.extend(raw['raw_labels'])
-            non_pseudo_label.extend(raw['non_pseudo_label'])
+
+            try:
+                raw_labels.extend(raw['raw_labels'])
+                non_pseudo_label.extend(raw['non_pseudo_label'])
+
+            except:
+                pass
 
             if not isinstance(outputs, dict):
                 raise TypeError('batch_processor() must return a dict')
@@ -556,8 +561,14 @@ class Runner(object):
                 true_labels.extend(raw['true'])
                 predicted_labels.extend(raw['pred'])
                 pred_raw.extend(raw['raw_preds'])
-                raw_labels.extend(raw['raw_labels'])
-                non_pseudo_label.extend(raw['non_pseudo_label'])
+
+                try:
+                    raw_labels.extend(raw['raw_labels'])
+                    non_pseudo_label.extend(raw['non_pseudo_label'])
+
+                except:
+                    pass
+
 
                 try:
                     overall_loss_np = overall_loss.cpu().data.numpy()
@@ -636,8 +647,13 @@ class Runner(object):
                 true_labels.extend(raw['true'])
                 predicted_labels.extend(raw['pred'])
                 pred_raw.extend(raw['raw_preds'])
-                raw_labels.extend(raw['raw_labels'])
-                non_pseudo_label.extend(raw['non_pseudo_label'])
+
+                try:
+                    raw_labels.extend(raw['raw_labels'])
+                    non_pseudo_label.extend(raw['non_pseudo_label'])
+
+                except:
+                    pass
 
                 try:
                     overall_loss_np = overall_loss.cpu().data.numpy()
