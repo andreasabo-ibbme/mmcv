@@ -45,6 +45,7 @@ class WandbLoggerHook(LoggerHook):
 
     @master_only
     def before_run(self, runner):
+        # input("before run")
         if self.wandb is None:
 
             self.import_wandb()
@@ -66,7 +67,10 @@ class WandbLoggerHook(LoggerHook):
             except: # Don't have the count iteration so dont include it
                 pass
 
-            self.wandb.init(project=self.initial_config['wandb_project'], config=self.initial_config, group=self.initial_config['wandb_group'], name=run_name, reinit=True)
+            try:
+                self.wandb.init(dir = self.initial_config['dir'], project=self.initial_config['wandb_project'], config=self.initial_config, group=self.initial_config['wandb_group'], name=run_name, reinit=True)
+            except:
+                self.wandb.init(project=self.initial_config['wandb_project'], config=self.initial_config, group=self.initial_config['wandb_group'], name=run_name, reinit=True)
 
 
         else:

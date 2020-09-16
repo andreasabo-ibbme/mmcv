@@ -8,11 +8,11 @@ from .hooks import (HOOKS, CheckpointHook, ClosureHook, DistSamplerSeedHook,
                     TextLoggerHook, WandbLoggerHook)
 from .log_buffer import LogBuffer
 from .priority import Priority, get_priority
-from .runner import Runner
+from .runner import Runner, TooManyRetriesException
 from .utils import get_host_info, get_time_str, obj_from_dict
 
 __all__ = [
-    'Runner', 'LogBuffer', 'HOOKS', 'Hook', 'CheckpointHook', 'ClosureHook',
+    'Runner', 'TooManyRetriesException', 'LogBuffer', 'HOOKS', 'Hook', 'CheckpointHook', 'ClosureHook',
     'LrUpdaterHook', 'OptimizerHook', 'IterTimerHook', 'DistSamplerSeedHook',
     'LoggerHook', 'PaviLoggerHook', 'TextLoggerHook', 'TensorboardLoggerHook',
     'WandbLoggerHook', '_load_checkpoint', 'load_state_dict',

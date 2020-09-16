@@ -31,6 +31,18 @@ def weight_reset(m):
         m.reset_parameters()
 
 
+class TooManyRetriesException(Exception):
+    """Exception raised for errors in the input salary.
+
+    """
+
+    def __init__(self, message="Too many retries"):
+        self.message = message
+        super().__init__(self.message)
+
+
+
+
 class Runner(object):
     """A training helper for PyTorch.
 
@@ -763,6 +775,9 @@ class Runner(object):
             max_epochs (int): Total training epochs.
         """
         not_done = True
+        max_retry = 3
+        max_retry_counter = 0
+
         try:
             self.pretrain_mode = kwargs['supcon_pretraining']
         except:
@@ -865,7 +880,7 @@ class Runner(object):
             except Exception as e: 
                 not_done = True
                 logging.exception("Error message =================================================")
-
+                max_retry_counter += 1
                 # Reset the model parameters
                 print("======================================going to retrain again, resetting parameters...")
                 print("This is the error we got:", e)
@@ -885,6 +900,12 @@ class Runner(object):
                     shutil.rmtree(self.work_dir)
                 except:
                     print('failed to delete the self.work_dir folder')
+
+
+                if max_retry_counter >= max_retry:
+                    not_done = False
+                    raise TooManyRetriesException
+
 
 
         # If we stopped early, evaluate the performance of the saved model on all datasets
