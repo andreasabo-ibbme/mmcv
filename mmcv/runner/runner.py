@@ -436,7 +436,7 @@ class Runner(object):
                     fig_name, _ = os.path.splitext(name[walk_num])
                     _, name_clean = os.path.split(fig_name)
                     fig_save = os.path.join(output_folder, name_clean + '_epoch' + str(self.epoch) + '_.png')
-                    fig.savefig(fig_save)
+                    # fig.savefig(fig_save)
 
 
             else: 

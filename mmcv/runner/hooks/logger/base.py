@@ -107,7 +107,7 @@ class LoggerHook(Hook):
             fig = self.plot_confusion_matrix(runner.labels, runner.preds, class_names, False, fig_title)
 
             figure_name = runner.work_dir +"/" + runner.mode + "_confusion_" + str(runner._epoch)+  ".png"
-            fig.savefig(figure_name)
+            # fig.savefig(figure_name)
 
             runner.log_buffer.logChart(fig, runner.mode + "_" + str(runner._epoch)+  ".png", "confusion_matrix")
 
@@ -118,7 +118,7 @@ class LoggerHook(Hook):
             reg_fig = self.regressionPlot(runner.labels, runner.preds_raw, class_names, fig_title)
 
             figure_name = runner.work_dir +"/" + runner.mode + "_regression_" + str(runner._epoch)+  ".png"
-            reg_fig.savefig(figure_name)
+            # reg_fig.savefig(figure_name)
             runner.log_buffer.logChart(reg_fig, runner.mode + "_" + str(runner._epoch)+  ".png", "regression_plot")
 
 
