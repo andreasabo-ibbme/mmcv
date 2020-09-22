@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from scipy import stats
 from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
 from sklearn.utils.multiclass import unique_labels
-import csv
+import csv, copy
 from pathlib import Path
 
 
@@ -75,6 +75,7 @@ class LoggerHook(Hook):
         log_stats = False
         final_results_base = str(Path(runner.work_dir).parents[0])
         final_results_base, amb = os.path.split(runner.work_dir)
+
         final_results_path = os.path.join(final_results_base, 'all_test', runner.things_to_log['wandb_group'])
         if runner.mode == 'test':
             final_results_file = os.path.join(final_results_path,'test_' + str(runner._epoch) + '.csv')
@@ -101,6 +102,7 @@ class LoggerHook(Hook):
 
         if runner._epoch % 5 == 0:
             # class_names = np.array([str(x) for x in range(10)])
+            # print(runner.labels)
             num_class = runner.things_to_log['num_class']
             class_names = [str(i) for i in range(num_class)]
             fig_title = runner.mode.upper() + " Confusion matrix, epoch: " + str(runner._epoch)
@@ -111,11 +113,23 @@ class LoggerHook(Hook):
 
             runner.log_buffer.logChart(fig, runner.mode + "_" + str(runner._epoch)+  ".png", "confusion_matrix")
 
+            fig = self.plot_confusion_matrix(runner.labels, runner.preds, class_names, True, fig_title)
+
+            figure_name = runner.work_dir +"/" + runner.mode + "_confusion_normed" + str(runner._epoch)+  ".png"
+            fig.savefig(figure_name)
+
+            runner.log_buffer.logChart(fig, runner.mode + "_" + str(runner._epoch)+  ".png", "confusion_matrix_normed")
+
 
             # regression plots
             fig_title = runner.mode.upper() + " Regression plot, epoch: " + str(runner._epoch)
 
-            reg_fig = self.regressionPlot(runner.labels, runner.preds_raw, class_names, fig_title)
+            try:
+                reg_fig = self.regressionPlot(runner.raw_labels, runner.preds_raw, class_names, fig_title, runner.non_pseudo_label)
+            except Exception as e:
+                print("THis is error", e)
+                reg_fig = self.regressionPlot(runner.raw_labels, runner.preds_raw, class_names, fig_title)
+
 
             figure_name = runner.work_dir +"/" + runner.mode + "_regression_" + str(runner._epoch)+  ".png"
             # reg_fig.savefig(figure_name)
@@ -128,12 +142,31 @@ class LoggerHook(Hook):
         if self.reset_flag:
             runner.log_buffer.clear_output()
             
-    def regressionPlot(self, labels, raw_preds, classes, fig_title):
+    def regressionPlot(self, labels, raw_preds, classes, fig_title, non_pseudo_label=None):
         labels = np.asarray(labels)
+        raw_preds = np.asarray(raw_preds)
         true_labels_jitter = labels + np.random.random_sample(labels.shape)/6
-
+        
         fig = plt.figure()
-        plt.plot(true_labels_jitter, raw_preds, 'bo', markersize=6)
+
+        if non_pseudo_label is None:
+            plt.plot(true_labels_jitter, raw_preds, 'bo', markersize=6)
+
+        else:
+            # Plot the pseudo labels in red 
+            # print('non_pseudo_label', len(non_pseudo_label))
+            # print('non_pseudo_label', non_pseudo_label)
+            non_pseudo_label = np.asarray(non_pseudo_label)
+            one_mask = list(np.argwhere(non_pseudo_label > 0).squeeze())
+            zero_mask = list(np.argwhere(non_pseudo_label == 0).squeeze()) 
+            # print('one_mask', one_mask)
+            # print('zero_mask', len(zero_mask))
+            # print("true_labels_jitter", len(true_labels_jitter))
+            plt.plot(true_labels_jitter[one_mask], raw_preds[one_mask], 'bo', markersize=6)
+            plt.plot(true_labels_jitter[zero_mask], raw_preds[zero_mask], 'ro', markersize=4)
+
+
+
         plt.title(fig_title)
 
         plt.xlim(-0.5, 4.5)
@@ -144,16 +177,22 @@ class LoggerHook(Hook):
         return fig
 
 
-    def plot_confusion_matrix(self, y_true, y_pred, classes,normalize=False,title=None,cmap=plt.cm.Blues):
+    def plot_confusion_matrix(self, y_true_raw, y_pred_raw, classes,normalize=False,title=None,cmap=plt.cm.Blues):
         if not title:
             if normalize:
                 title = 'Normalized confusion matrix'
             else:
                 title = 'Confusion matrix, without normalization'
 
+        # Round the labels if they aren't already
+        y_true = copy.deepcopy(y_true_raw)
+        y_pred = copy.deepcopy(y_pred_raw)
+        y_true = list(np.rint(np.asarray(y_true)))
+        y_pred = list(np.rint(np.asarray(y_pred)))
+
 
         # How many classes are there? Go from 0 -> max in preds or labels
-        max_label = max(max(y_true), max(y_pred)) + 1
+        max_label = int(max(max(y_true), max(y_pred)) + 1)
         class_names_int = [int(i) for i in range(max_label)]
         classes = [str(i) for i in range(max_label)]
         cm = confusion_matrix(y_true, y_pred, labels=class_names_int)

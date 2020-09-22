@@ -31,6 +31,18 @@ def weight_reset(m):
         m.reset_parameters()
 
 
+class TooManyRetriesException(Exception):
+    """Exception raised for errors in the input salary.
+
+    """
+
+    def __init__(self, message="Too many retries"):
+        self.message = message
+        super().__init__(self.message)
+
+
+
+
 class Runner(object):
     """A training helper for PyTorch.
 
@@ -451,10 +463,23 @@ class Runner(object):
         self.model.train()
         self.mode = 'train'
         self.data_loader = data_loader
-        true_labels, predicted_labels, pred_raw = [], [], []
+        true_labels, predicted_labels, pred_raw, raw_labels, non_pseudo_label = [], [], [], [], []
         batch_loss = 0
 
         self.call_hook('before_train_epoch')
+        train_extrema_for_epochs = -1
+        # Should we use extrema or all data?
+        if 'train_extrema_for_epochs' in kwargs:
+            train_extrema_for_epochs = kwargs['train_extrema_for_epochs']
+
+        data_loader.dataset.data_source.sample_extremes = False
+        if self._epoch <= train_extrema_for_epochs:
+            data_loader.dataset.data_source.sample_extremes = True
+        
+        try: 
+            kwargs['class_weights_dict'][self.mode] = data_loader.dataset.data_source.get_class_dist()
+        except:
+            pass
 
         for i, data_batch in enumerate(data_loader):
             self._inner_iter = i
@@ -484,6 +509,13 @@ class Runner(object):
             predicted_labels.extend(raw['pred'])
             pred_raw.extend(raw['raw_preds'])
 
+            try:
+                raw_labels.extend(raw['raw_labels'])
+                non_pseudo_label.extend(raw['non_pseudo_label'])
+
+            except:
+                pass
+
             if not isinstance(outputs, dict):
                 raise TypeError('batch_processor() must return a dict')
             if 'log_vars' in outputs and not self.pretrain_mode:
@@ -500,6 +532,7 @@ class Runner(object):
         # true_labels, predicted_labels = self.remove_non_labelled_data(true_labels, predicted_labels)
         # print(len(true_labels), true_labels)
         # print(len(predicted_labels), predicted_labels)
+        # print("true_labels: ", true_labels)
         batch_loss = batch_loss / len(true_labels)
 
         if not self.pretrain_mode:
@@ -510,6 +543,8 @@ class Runner(object):
             self.preds = predicted_labels
             self.labels = true_labels
             self.preds_raw = pred_raw
+            self.raw_labels = raw_labels
+            self.non_pseudo_label = non_pseudo_label
             self.call_hook('after_val_epoch')
 
             self.call_hook('after_train_epoch')
@@ -526,7 +561,7 @@ class Runner(object):
         self.mode = 'val'
         self.data_loader = data_loader
         self.call_hook('before_val_epoch')
-        true_labels, predicted_labels, pred_raw = [], [], []
+        true_labels, predicted_labels, pred_raw, raw_labels, non_pseudo_label = [], [], [], [], []
         batch_loss = 0
 
         for i, data_batch in enumerate(data_loader):
@@ -538,7 +573,15 @@ class Runner(object):
                 true_labels.extend(raw['true'])
                 predicted_labels.extend(raw['pred'])
                 pred_raw.extend(raw['raw_preds'])
-                
+
+                try:
+                    raw_labels.extend(raw['raw_labels'])
+                    non_pseudo_label.extend(raw['non_pseudo_label'])
+
+                except:
+                    pass
+
+
                 try:
                     overall_loss_np = overall_loss.cpu().data.numpy()
                 except: 
@@ -567,6 +610,9 @@ class Runner(object):
             self.preds = predicted_labels
             self.labels = true_labels
             self.preds_raw = pred_raw
+            self.raw_labels = raw_labels
+            self.non_pseudo_label = non_pseudo_label
+
         # print('labels', true_labels, 'preds', predicted_labels)
 
         if self.early_stopping and not self.early_stopping_obj.early_stop and self.epoch >= self.es_start_up:
@@ -601,7 +647,7 @@ class Runner(object):
         self.mode = 'test'
         self.data_loader = data_loader
         self.call_hook('before_val_epoch')
-        true_labels, predicted_labels, pred_raw = [], [], []
+        true_labels, predicted_labels, pred_raw, raw_labels, non_pseudo_label = [], [], [], [], []
         batch_loss = 0
 
         for i, data_batch in enumerate(data_loader):
@@ -613,6 +659,14 @@ class Runner(object):
                 true_labels.extend(raw['true'])
                 predicted_labels.extend(raw['pred'])
                 pred_raw.extend(raw['raw_preds'])
+
+                try:
+                    raw_labels.extend(raw['raw_labels'])
+                    non_pseudo_label.extend(raw['non_pseudo_label'])
+
+                except:
+                    pass
+
                 try:
                     overall_loss_np = overall_loss.cpu().data.numpy()
                 except: 
@@ -640,9 +694,11 @@ class Runner(object):
             log_this = {'accuracy': acc}
             self.log_buffer.update(log_this, 1) 
 
+            self.non_pseudo_label = non_pseudo_label
             self.preds = predicted_labels
             self.labels = true_labels
             self.preds_raw = pred_raw
+            self.raw_labels = raw_labels
             self.call_hook('after_val_epoch')
     
         else:
@@ -719,13 +775,15 @@ class Runner(object):
             max_epochs (int): Total training epochs.
         """
         not_done = True
+        max_retry = 5
+        max_retry_counter = 0
+
         try:
             self.pretrain_mode = kwargs['supcon_pretraining']
         except:
             self.pretrain_mode = False
 
         kwargs = {k: v for k, v in kwargs.items() if k != 'supcon_pretraining'}
-
         # Freeze the encoder if needed
         if self.freeze_encoder:
             for param in self.model.module.encoder.parameters():
@@ -777,6 +835,8 @@ class Runner(object):
                 while self.epoch < max_epochs:
                     for i, flow in enumerate(workflow):
                         mode, epochs = flow
+                        kwargs['workflow_stage'] = mode
+
                         if isinstance(mode, str):  # self.train()
                             if not hasattr(self, mode):
                                 raise ValueError(
@@ -820,7 +880,7 @@ class Runner(object):
             except Exception as e: 
                 not_done = True
                 logging.exception("Error message =================================================")
-
+                max_retry_counter += 1
                 # Reset the model parameters
                 print("======================================going to retrain again, resetting parameters...")
                 print("This is the error we got:", e)
@@ -840,6 +900,12 @@ class Runner(object):
                     shutil.rmtree(self.work_dir)
                 except:
                     print('failed to delete the self.work_dir folder')
+
+
+                if max_retry_counter >= max_retry:
+                    not_done = False
+                    raise TooManyRetriesException
+
 
 
         # If we stopped early, evaluate the performance of the saved model on all datasets
@@ -886,6 +952,8 @@ class Runner(object):
         for i, flow in enumerate(workflow):
             mode, _ = flow
             print('now evaluating: ', mode)
+            kwargs['workflow_stage'] = mode
+
             # mode = "train", "val", "test"
             true_labels, predicted_labels, raw_preds, names, num_ts  = self.basic_no_log_eval(data_loaders[i], **kwargs)
             acc = accuracy_score(true_labels, predicted_labels)
