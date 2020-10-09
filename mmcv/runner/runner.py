@@ -775,7 +775,7 @@ class Runner(object):
             max_epochs (int): Total training epochs.
         """
         not_done = True
-        max_retry = 5
+        max_retry = 10
         max_retry_counter = 0
 
         try:
