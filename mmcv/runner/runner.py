@@ -103,6 +103,7 @@ class Runner(object):
         # create work_dir
         if mmcv.is_str(work_dir):
             self.work_dir = osp.abspath(work_dir)
+            print("workdir in mmcv runner is: ", self.work_dir)
             mmcv.mkdir_or_exist(self.work_dir)
         elif work_dir is None:
             self.work_dir = None
@@ -816,6 +817,7 @@ class Runner(object):
                 self._max_epochs = max_epochs
                 for i, flow in enumerate(workflow):
                     mode, epochs = flow
+
                     if mode == 'train':
                         self._max_iters = self._max_epochs * len(data_loaders[i])
                         break
@@ -836,6 +838,7 @@ class Runner(object):
                     for i, flow in enumerate(workflow):
                         mode, epochs = flow
                         kwargs['workflow_stage'] = mode
+                        kwargs['cur_epoch'] = self.epoch
 
                         if isinstance(mode, str):  # self.train()
                             if not hasattr(self, mode):
@@ -866,6 +869,7 @@ class Runner(object):
                                 # What to do after epoch if we're in pretrain mode
                                 pass
                     if not self.pretrain_mode:
+                        mmcv.mkdir_or_exist(self.work_dir)
                         df_all.to_csv(self.work_dir + "/results_df.csv")
 
                     if self.early_stopping:
