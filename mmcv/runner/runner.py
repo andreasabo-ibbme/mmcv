@@ -890,6 +890,9 @@ class Runner(object):
                 print("This is the error we got:", e)
                 try:
                     self.model.module.apply(weight_reset)
+                    if os.path.isfile(self.es_checkpoint):
+                        os.remove(self.es_checkpoint)
+                        print('deleted pretrain')
                     print('successfully reset weights')
                 except Exception as e: 
                     print("This is the error we got _ 2:", e)
