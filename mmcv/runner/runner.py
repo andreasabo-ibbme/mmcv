@@ -969,7 +969,12 @@ class Runner(object):
 
 
             final_results_base, amb = os.path.split(self.work_dir)
-            final_results_path = os.path.join(final_results_base, 'all_final_eval', self.things_to_log['wandb_group'])
+            try:
+                print(self.things_to_log)
+                final_results_path = os.path.join(final_results_base, 'all_final_eval', str(self.things_to_log['num_reps_pd']))
+            except:
+                final_results_path = os.path.join(final_results_base, 'all_final_eval', self.things_to_log['wandb_group'])
+
 
             if mode == 'test':
                 final_results_file = os.path.join(final_results_path,'test.csv')
