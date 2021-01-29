@@ -100,7 +100,7 @@ class LoggerHook(Hook):
                 for num in range(len(runner.labels)):
                     writer.writerow([amb, runner.labels[num], runner.preds[num], runner.preds_raw[num]])
 
-        if runner._epoch % 5 == 0:
+        if runner._epoch % 5 == 0 and runner.log_conf_mat:
             # class_names = np.array([str(x) for x in range(10)])
             # print(runner.labels)
             num_class = runner.things_to_log['num_class']

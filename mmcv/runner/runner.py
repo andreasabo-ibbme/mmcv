@@ -79,6 +79,7 @@ class Runner(object):
                  finetuning=False,
                  visualize_preds={'visualize': False}, 
                  num_class=4,
+                 log_conf_mat=False,
                  ):
 
         assert callable(batch_processor)
@@ -99,7 +100,8 @@ class Runner(object):
         self.finetuning = finetuning
         self.visualize_preds = visualize_preds
         self.num_class = num_class
-
+        self.log_conf_mat = log_conf_mat
+        
         # create work_dir
         if mmcv.is_str(work_dir):
             self.work_dir = osp.abspath(work_dir)
